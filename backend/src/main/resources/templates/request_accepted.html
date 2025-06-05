@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Request Accepted</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f9; color: #333;">
+
+<div style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);">
+
+    <div style="background-color: #28a745; padding: 30px; color: white; text-align: center; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <h1 style="margin: 0; font-size: 28px;">You're In!</h1>
+    </div>
+
+    <div style="padding: 20px; text-align: center;">
+        <p style="font-weight: bold; font-size: 24px; background: linear-gradient(to right, #4A90E2, #A355B9, #FF6B6B); -webkit-background-clip: text; background-clip: text; color: transparent;">
+            <span th:text="'Hello ' + ${username} + ','"></span>
+        </p>
+        <p style="font-size: 16px; line-height: 1.6; color: #555;"
+           th:text="'Your request to join the group: ' + ${groupName} + ' has been accepted!'"></p>
+        <p style="font-size: 16px; line-height: 1.6; color: #555;">
+            You can now start chatting with the group using the link below.
+        </p>
+
+        <a th:href="${groupChatUrl}" target="_blank"
+           style="display:inline-block; background-color:#28a745; color:white; padding:15px 30px; font-size:16px; text-decoration:none; border-radius:5px;">
+            Go to Group Chat
+        </a>
+    </div>
+
+    <div style="display: flex; gap: 20px; background-color: #f4f6f9; padding: 20px; text-align: left; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+        <img src="cid:robinImg" alt="Chopper" style="width: 50px; border-radius: 50%; margin-bottom: 10px;">
+        <div>
+            <p style="font-size: 14px; color: #777; margin: 5px 0;">If you were not expecting this email, please ignore
+                it.</p>
+            <p style="font-size: 14px; color: #777; margin: 5px 0;">&copy; 2025 UMI. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

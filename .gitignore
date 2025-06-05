@@ -1,0 +1,38 @@
+# General
+*.log
+*.env
+.DS_Store
+node_modules/
+dist/
+build/
+.vscode/
+.idea/
+__pycache__/
+.venv/
+
+# Maven
+target/
+
+# Java
+*.class
+
+# Secrets
+secrets.yml
+*.secrets.yml
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# React (Vite)
+frontend/.next/
+frontend/.turbo/
+frontend/.cache/
+
+# VS Code
+*.code-workspace
+
+# Docker
+*.pid

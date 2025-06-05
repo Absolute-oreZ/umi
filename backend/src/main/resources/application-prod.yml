@@ -1,0 +1,16 @@
+application:
+  mailing:
+    host: smtp.gmail.com
+    port: 587
+    protocol: smtp
+    tls: true
+    properties:
+      mail:
+      smtp:
+      auth: true
+      starttls: true
+    frontend:
+      activation-url: http://localhost:5173/activate-account
+  file:
+    upload:
+      photos-output-path: ../frontend/public/uploads

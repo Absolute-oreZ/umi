@@ -1,0 +1,30 @@
+spring:
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB
+  config:
+    import: "optional:secrets.yml"
+
+springdoc:
+  default-produces-medial-type: application/json
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+    info:
+      show-details: always
+    metrics:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    com.fasterxml.jackson: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate: INFO
