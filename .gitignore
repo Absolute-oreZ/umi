@@ -36,3 +36,5 @@ frontend/.cache/
 
 # Docker
 *.pid
+
+keycloak/config/umi-realm-config
