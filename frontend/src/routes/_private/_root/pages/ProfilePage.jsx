@@ -1,7 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { CgProfile } from "react-icons/cg";
 import { ProfilePageSkeleton } from "../../../../skeletons";
-import { formatImagePath } from "../../../../utils";
 import { useAuth } from "../../../../context/AuthContext";
 
 const ProfilePage = () => {
@@ -23,18 +22,14 @@ const ProfilePage = () => {
     accountPremium,
   } = user;
 
-  const formattedProfilePath = profilePicturePath
-    ? formatImagePath(profilePicturePath)
-    : null;
-
   return (
     <div className="w-full text-white px-6 p-20">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Profile Section */}
         <div className="rounded-lg py-6 flex flex-col items-center">
-          {formattedProfilePath ? (
+          {profilePicturePath ? (
             <img
-              src={formattedProfilePath}
+              src={profilePicturePath}
               alt="Profile"
               className="w-30 h-30 rounded-full object-cover mb-4 border-4 border-gray-600"
             />

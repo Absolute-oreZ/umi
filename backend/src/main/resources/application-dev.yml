@@ -41,6 +41,9 @@ application:
   bot:
     id: -9223372036854775808
     username: BOT
+  ml-recommendation:
+    url: http://localhost:5002
+    service-token: YUAtakwzM0KAcesj8o6QEMI98I9qcx7f0NvA1mlauHk=
 
 frontend:
   url: http://localhost:5172

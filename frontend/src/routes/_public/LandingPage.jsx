@@ -12,7 +12,7 @@ const LandingPage = () => {
 
   const handleLogin = async () => {
     try {
-      await keycloak.login({ redirectUri: `${redirectUrl}/groups` });
+      await keycloak.login({ redirectUri: `${redirectUrl}/me` });
     } catch (error) {
       console.error("Login failed", error);
     }

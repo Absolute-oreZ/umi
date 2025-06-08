@@ -1,8 +1,9 @@
 import { countryData } from "../../../constants/countryData";
 import ProfileCompletionLayout from "./ProfileCompletionLayout";
 import Uploader from "../../../components/common/Uploader";
-import {getFlagEmoji} from "../../../utils";
-import { toast,Slide } from "react-toastify";
+import { getFlagEmoji } from "../../../utils";
+import { toast, Slide } from "react-toastify";
+import Select from "react-select";
 
 const CountryStep = ({ country, profilePicture, onUpdateField, onNext }) => {
   const handleContinue = () => {
@@ -24,6 +25,17 @@ const CountryStep = ({ country, profilePicture, onUpdateField, onNext }) => {
     onNext();
   };
 
+  // Transform countryData to React Select format
+  const countryOptions = Object.entries(countryData).map(
+    ([continent, countries]) => ({
+      label: continent,
+      options: countries.map((c) => ({
+        value: c.name,
+        label: `${getFlagEmoji(c.code)} ${c.name}`,
+      })),
+    })
+  );
+
   return (
     <ProfileCompletionLayout
       title="Let's set up your profile."
@@ -34,34 +46,35 @@ const CountryStep = ({ country, profilePicture, onUpdateField, onNext }) => {
         <label className="block text-white text-sm font-bold mb-2">
           Profile Picture
         </label>
-        <Uploader 
-          initialImage={profilePicture} 
-          onImageSelected={(file) => onUpdateField('profilePicture', file)} 
+        <Uploader
+          initialImage={profilePicture}
+          onImageSelected={(file) => onUpdateField("profilePicture", file)}
         />
       </div>
 
-      <div>
+      <div className="mt-4">
         <label className="block text-white text-sm font-bold mb-2">
           Country
         </label>
-        <select
-          value={country}
-          onChange={(e) => onUpdateField('country', e.target.value)}
-          className="w-full p-2 text-black rounded"
-        >
-          <option value="" disabled>
-            Select a country
-          </option>
-          {Object.entries(countryData).map(([continent, countries]) => (
-            <optgroup label={continent} key={continent}>
-              {countries.map((country) => (
-                <option key={country.code} value={country.name}>
-                  {getFlagEmoji(country.code)} {country.name}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <Select
+          className="text-black"
+          options={countryOptions}
+          value={
+            country
+              ? {
+                  value: country,
+                  label: `${country}`,
+                }
+              : null
+          }
+          onChange={(selected) => onUpdateField("country", selected?.value)}
+          placeholder="Select a country"
+          isSearchable
+          maxMenuHeight={200} // limits dropdown height (~5 items)
+          styles={{
+            menu: (base) => ({ ...base, zIndex: 9999 }), // for proper layering
+          }}
+        />
       </div>
     </ProfileCompletionLayout>
   );

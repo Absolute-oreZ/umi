@@ -45,6 +45,7 @@ public class GroupService {
     private String botId;
 
     private final GroupMapper groupMapper;
+    private final SupabaseStorageService supabaseStorageService;
     private final FileService fileService;
     private final EmailService emailService;
     private final NotificationService notificationService;
@@ -90,6 +91,17 @@ public class GroupService {
         Learner learner = learnerRepository.findById(learnerId).orElseThrow(() -> new EntityNotFoundException("Learner not found with id " + learnerId));
 
         return groupMapper.toDTO(group, learner.getUsername(), messageRepository);
+    }
+
+    public List<GroupDTO> getCommonGroups(String username, Authentication connectedUser) {
+        String learnerBId = connectedUser.getName();
+        Learner learnerA = learnerRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Learner not found with username " + username));
+        Learner learnerB = learnerRepository.findById(learnerBId).orElseThrow(() -> new EntityNotFoundException("Learner not found with id " + learnerBId));
+
+        return groupRepository.findCommonGroups(learnerA.getId(), learnerB.getId(), MemberStatus.MEMBER)
+                .stream()
+                .map(g -> groupMapper.toDTO(g, learnerA.getUsername(), messageRepository))
+                .toList();
     }
 
     @Transactional
@@ -143,21 +155,35 @@ public class GroupService {
 
     @Transactional
     public GroupDTO createGroup(NewGroupDTO newGroupDTO, MultipartFile icon, Authentication connectedUser) {
+        String learnerId = connectedUser.getName();
+        Learner learner = learnerRepository.findById(learnerId).orElseThrow(EntityNotFoundException::new);
+        Learner bot = learnerRepository.findById(botId).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
 
         Group group = Group.builder()
                 .name(newGroupDTO.getName())
                 .about(newGroupDTO.getAbout())
+                .dominantClusterId(learner.getClusterId())
+                .clusterMemberRatio(1.0)
                 .build();
 
         if (icon != null) {
-            String iconPath = fileService.saveFile(icon, "groups", String.valueOf(group.getId()), FileType.IMAGE);
-            group.setIconPath(iconPath);
-            groupRepository.save(group);
+            try {
+                String iconPath = supabaseStorageService.uploadFile(
+                        icon,
+                        "users",
+                        String.valueOf(group.getId()),
+                        FileType.IMAGE
+                );
+
+                group.setIconPath(iconPath);
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                throw new RuntimeException("Error uploading profile picture", ex);
+            }
         }
 
-        String learnerId = connectedUser.getName();
-        Learner learner = learnerRepository.findById(learnerId).orElseThrow(EntityNotFoundException::new);
-        Learner bot = learnerRepository.findById(botId).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
+        groupRepository.save(group);
 
         LearnerGroup learnerGroup = LearnerGroup.builder()
                 .group(group)
@@ -167,6 +193,16 @@ public class GroupService {
                 .build();
 
         learnerGroupRepository.save(learnerGroup);
+
+        Message message = Message.builder()
+                .messageType(MessageType.NOTICE)
+                .senderUsername(bot.getUsername())
+                .senderProfilePicturePath(bot.getProfilePicturePath())
+                .group(group)
+                .content(learner.getUsername() + " created the group")
+                .build();
+
+        messageRepository.save(message);
 
         if (newGroupDTO.isIncludeBot()) {
             LearnerGroup botLG = LearnerGroup.builder()
@@ -179,20 +215,7 @@ public class GroupService {
             learnerGroupRepository.save(botLG);
         }
 
-        Message message = Message.builder()
-                .messageType(MessageType.NOTICE)
-                .senderUsername(bot.getUsername())
-                .senderProfilePicturePath(bot.getProfilePicturePath())
-                .group(group)
-                .content(learner.getUsername() + " created the group")
-                .build();
-
-        messageRepository.save(message);
-
         group.setLastMessage(message);
-
-        updateGroupCluster(group);
-        groupRepository.save(group);
         return groupMapper.toDTO(group, learner.getUsername(), messageRepository);
     }
 
@@ -280,7 +303,7 @@ public class GroupService {
 
             messageRepository.save(message);
 
-            updateGroupCluster(group);
+            updateGroupCluster(group.getId());
             group.setLastMessage(message);
             groupRepository.save(group);
 
@@ -341,23 +364,11 @@ public class GroupService {
 
         learnerGroupRepository.save(learnerGroup);
 
-        updateGroupCluster(group);
-        groupRepository.save(group);
+        updateGroupCluster(groupId);
     }
 
-
-    public List<GroupDTO> getCommonGroups(String username, Authentication connectedUser) {
-        String learnerBId = connectedUser.getName();
-        Learner learnerA = learnerRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Learner not found with username " + username));
-        Learner learnerB = learnerRepository.findById(learnerBId).orElseThrow(() -> new EntityNotFoundException("Learner not found with id " + learnerBId));
-
-        return groupRepository.findCommonGroups(learnerA.getId(), learnerB.getId(), MemberStatus.MEMBER)
-                .stream()
-                .map(g -> groupMapper.toDTO(g, learnerA.getUsername(), messageRepository))
-                .toList();
-    }
-
-    private void updateGroupCluster(Group group) {
+    private void updateGroupCluster(Long groupId) {
+        Group group = groupRepository.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
         List<LearnerGroup> activeMembers = group.getLearnerGroups().stream()
                 .filter(lg -> lg.getMemberStatus() == MemberStatus.MEMBER)
                 .toList();
@@ -378,6 +389,8 @@ public class GroupService {
                     Map.Entry.comparingByValue()
             );
 
+            System.out.println("max entry: " + maxEntry);
+
             group.setDominantClusterId(maxEntry.getKey());
             group.setClusterMemberRatio(
                     maxEntry.getValue() / (double) activeMembers.size()
@@ -386,6 +399,8 @@ public class GroupService {
             group.setDominantClusterId(null);
             group.setClusterMemberRatio(0.0);
         }
+
+        groupRepository.save(group);
     }
 
     @Scheduled(cron = "0 45 0 * * *")

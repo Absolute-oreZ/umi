@@ -1,52 +1,64 @@
 package dev.young.backend.client;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
 public class GeminiClient {
 
+    @Value("${application.gemini-ai.base-url}")
+    private String baseUrl;
     @Value("${application.gemini-ai.api-key}")
     private String apiKey;
+    @Value("${application.gemini-ai.model}")
+    private String model;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_API_KEY";
+    private WebClient webClient;
 
-    public String ask(String prompt) {
-        // construct the request payload
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("contents", Collections.singletonList(
-                Map.of("parts", Collections.singletonList(Map.of("text", prompt)))
-        ));
+    @PostConstruct
+    private void init() {
+        this.webClient = WebClient.builder()
+                .baseUrl(baseUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+    public Mono<String> ask(String prompt) {
+        String endpoint = String.format("/v1beta/models/%s:generateContent?key=%s",model, apiKey);
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+        Map<String, Object> requestBody = Map.of(
+                "contents", Collections.singletonList(
+                        Map.of("parts", Collections.singletonList(
+                                Map.of("text", prompt)
+                        ))
+                )
+        );
 
-        try {
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    GEMINI_API_URL.replace("YOUR_API_KEY", apiKey),
-                    HttpMethod.POST,
-                    request,
-                    Map.class
-            );
-
-            Map content = (Map) ((Map) ((java.util.List<?>) response.getBody().get("candidates")).get(0)).get("content");
-            java.util.List<?> parts = (java.util.List<?>) content.get("parts");
-            return (String) ((Map<?, ?>) parts.get(0)).get("text");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "I'm sorry, I couldn't process that right now.";
-        }
+        return webClient.post()
+                .uri(endpoint)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .map(response -> {
+                    try {
+                        Map<?, ?> candidate = (Map<?, ?>) ((java.util.List<?>) response.get("candidates")).get(0);
+                        Map<?, ?> content = (Map<?, ?>) candidate.get("content");
+                        java.util.List<?> parts = (java.util.List<?>) content.get("parts");
+                        return (String) ((Map<?, ?>) parts.get(0)).get("text");
+                    } catch (Exception e) {
+                        return "I'm sorry, I couldn't process that right now.";
+                    }
+                })
+                .onErrorReturn("I'm sorry, I couldn't process that right now.");
     }
 }

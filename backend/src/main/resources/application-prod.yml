@@ -1,16 +1,58 @@
-application:
-  mailing:
+spring:
+  main:
+    lazy-initialization: true
+  datasource:
+    url: jdbc:postgresql://aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?prepareThreshold=0
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        statement_cache:
+          size: 0
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "http://localhost:9092/realms/umi"
+  mail:
     host: smtp.gmail.com
     port: 587
-    protocol: smtp
-    tls: true
     properties:
       mail:
-      smtp:
-      auth: true
-      starttls: true
-    frontend:
-      activation-url: http://localhost:5173/activate-account
+        smtp:
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+application:
+  keycloak:
+    server-url: http://localhost:9092
+    realm: umi
+    client-id: umi-cli
   file:
     upload:
       photos-output-path: ../frontend/public/uploads
+  bot:
+    id: -9223372036854775808
+    username: BOT
+  ml-recommendation:
+    base-url: http://localhost:5002
+  gemini-ai:
+    base-url: https://generativelanguage.googleapis.com
+    model: gemini-2.0-flash
+
+frontend:
+  url: http://localhost:5172
+  paths:
+    groups: /groups
+
+server:
+  port: 8082

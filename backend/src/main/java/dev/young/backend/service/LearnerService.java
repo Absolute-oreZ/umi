@@ -33,6 +33,7 @@ public class LearnerService {
     private final FlaskClient flaskClient;
     private final LearnerMapper learnerMapper;
     private final FileService fileService;
+    private final SupabaseStorageService supabaseStorageService;
     private final LearnerRepository learnerRepository;
     private final LearningPreferenceRepository learningPreferenceRepository;
     private static final Logger log = LoggerFactory.getLogger(LearnerService.class);
@@ -41,7 +42,6 @@ public class LearnerService {
         String learnerId = connectedUser.getName();
         Learner learner = learnerRepository.findById(learnerId).orElseThrow(() -> (new EntityNotFoundException("User not found with id " + learnerId)));
         return learnerMapper.toDTO(learner);
-
     }
 
     public LearnerDTO getProfile(String username) {
@@ -62,8 +62,10 @@ public class LearnerService {
         learningPreference.setPersonality(learningPreferenceDTO.getPersonality());
 
         try {
+            System.out.println("predicting cluster");
             Integer clusterId = getClusterPrediction(learningPreferenceDTO);
             learner.setClusterId(clusterId);
+            System.out.println("predicted cluster: " + clusterId);
             learner.setClusterUpdatedAt(LocalDateTime.now());
         } catch (ClusterServiceException e) {
             log.error("Cluster prediction failed, keeping previous cluster ID", e);
@@ -72,12 +74,25 @@ public class LearnerService {
         learningPreferenceRepository.save(learningPreference);
     }
 
-    public void uploadProfilePicture(MultipartFile file, Authentication connectedUser) {
+    public void uploadProfilePicture(MultipartFile profilePicture, Authentication connectedUser) {
         String userId = connectedUser.getName();
         Learner learner = learnerRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
-        String profilePicture = fileService.saveFile(file, "users", learner.getId(), FileType.IMAGE);
-        learner.setProfilePicturePath(profilePicture);
-        learnerRepository.save(learner);
+//        String profilePicturePath = fileService.saveFile(profilePicture, "users", learner.getId(), FileType.IMAGE);
+        try {
+            String profilePicturePath = supabaseStorageService.uploadFile(
+                    profilePicture,
+                    "users",
+                    learner.getId(),
+                    FileType.IMAGE
+            );
+
+            learner.setProfilePicturePath(profilePicturePath);
+            learnerRepository.save(learner);
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new RuntimeException("Error uploading profile picture", ex);
+        }
     }
 
     private Integer getClusterPrediction(LearningPreferenceDTO dto) {
@@ -86,9 +101,7 @@ public class LearnerService {
         }
 
         try {
-            return flaskClient.predictCluster(
-                    dto
-            );
+            return flaskClient.predictCluster(dto);
         } catch (RestClientException e) {
             log.error("Cluster prediction request failed", e);
             throw new ClusterServiceException("Failed to get cluster prediction: " + e.getMessage());
@@ -96,9 +109,9 @@ public class LearnerService {
     }
 
     public void synchronizeWithIDP(Jwt token) {
-        Map<String,Object> claims = token.getClaims();
-        String email = (String) claims.getOrDefault("email","");
-        Optional<Learner> optLearner = learnerRepository. findByEmail(email);
+        Map<String, Object> claims = token.getClaims();
+        String email = (String) claims.getOrDefault("email", "");
+        Optional<Learner> optLearner = learnerRepository.findByEmail(email);
         Learner learner;
 
         learner = optLearner.orElseGet(() -> Learner.builder()

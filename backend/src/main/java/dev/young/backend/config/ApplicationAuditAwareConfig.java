@@ -15,8 +15,9 @@ public class ApplicationAuditAwareConfig implements AuditorAware<String> {
     public Optional<String> getCurrentAuditor() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if(authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken){
-            return Optional.empty();
+        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
+            // return a fixed default auditor for bot actions
+            return Optional.of("BOT");
         }
 
         return Optional.ofNullable(authentication.getName());

@@ -17,7 +17,6 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "_user")
 @EntityListeners(AuditingEntityListener.class)
 public class Learner {
 

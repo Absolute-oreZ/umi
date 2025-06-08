@@ -1,3 +1,6 @@
+const BASE_URL = import.meta.env.VITE_SUPABASE_PROJECT_URL;
+const BUCKET = import.meta.env.VITE_SUPABASE_PROJECT_BUCLKET;
+
 export const getFlagEmoji = (countryCode) => {
   return String.fromCodePoint(
     ...countryCode.toUpperCase().split('').map(c => 0x1F1E6 - 65 + c.charCodeAt(0))
@@ -18,7 +21,7 @@ export const validateFileSize = (file, maxSize) => {
 };
 
 export const formatImagePath = (path) => {
-  return path.replace(/^.*(uploads)/, "$1")
+  return path.replace(BASE_URL + "/" + BUCKET + "/" + path);
 }
 
 export function byteArrayToBase64(byteArray) {
