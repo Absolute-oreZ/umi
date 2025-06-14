@@ -1,4 +1,5 @@
-FROM openjdk:21-jdk-slim
+# Build stage
+FROM openjdk:21-jdk-slim AS builder
 
 WORKDIR /app
 
@@ -13,20 +14,18 @@ COPY mvnw .
 # download dependencies
 RUN ./mvnw dependency:go-offline -B
 
-# copy source code
+# copy source and build
 COPY src src
-
-# build stage
 RUN ./mvnw clean package -DskipTests
 
-# create final image
-FROM openjdk:21-jre-slim
+# Final image
+FROM openjdk:21-slim
 WORKDIR /app
-COPY --from=0 /app/target/.jar app.jar
+COPY --from=builder /app/target/*.jar app.jar
 
-# cretae non root user
+# create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN chown -R appuser:appuser /apps
+RUN chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8082
