@@ -50,8 +50,8 @@ public class SecurityConfig {
                 // migrated to SupaBase auth
 //                .oauth2ResourceServer(auth ->
 //                        auth.jwt(token -> token.jwtAuthenticationConverter(new JwtAuthenticationConverter())))
-                .addFilterBefore(expiredTokenFilter,SupabaseJwtAuthenticationFilter.class)
-                .addFilterBefore(supabaseJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(expiredTokenFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(supabaseJwtAuthenticationFilter, ExpiredTokenFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .build();
     }
