@@ -165,20 +165,4 @@ public class UserService {
             throw new ClusterServiceException("Failed to get cluster prediction: " + e.getMessage());
         }
     }
-
-//    public void synchronizeWithIDP(Jwt token) {
-//        Map<String, Object> claims = token.getClaims();
-//        String email = (String) claims.getOrDefault("email", "");
-//        Optional<Profile> optuser = userRepository.findByEmail(email);
-//        Profile user;
-//
-//        user = optuser.orElseGet(() -> Profile.builder()
-//                .email(email)
-//                .id((String) claims.get("sub"))
-//                .username((String) claims.get("preferred_username"))
-//                .build());
-//
-//        user.setLastSeen(LocalDateTime.now());
-//        userRepository.save(user);
-//    }
 }

@@ -14,45 +14,11 @@ services:
     networks:
       - umi-networks
     restart: unless-stopped
-
-  mail-dev:
-    container_name: umi-mail-dev
-    image: maildev/maildev
-    ports:
-      - 1080:1080
-      - 1025:1025
-    networks:
-      - umi-networks
-
-  keycloak:
-    container_name: umi-keycloak
-    image: quay.io/keycloak/keycloak:22.0.5
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://umi-postgres-sql:5432/keycloak_db
-      KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: password
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-    command:
-      - start-dev
-      - --spi-theme-static-max-age=-1
-      - --spi-theme-cache-themes=false
-      - --spi-theme-cache-templates=false
-    volumes:
-      - ./keycloak/themes:/opt/keycloak/themes
-    ports:
-      - 9092:8080
-    networks:
-      - umi-networks
-    depends_on:
-      - postgres
-    restart: unless-stopped
     
   recommendation:
     build:
-      context: .
-      dockerfile: recommendation/Dockerfile
+      context: ./recommendation
+      dockerfile: Dockerfile
     environment:
       - PORT=5002
       - MODEL_PATH=models/clustering_model.pkl
@@ -64,7 +30,6 @@ services:
       - umi-networks
     depends_on:
       - postgres
-      - keycloak
     restart: unless-stopped
     command: gunicorn app:app --bind 0.0.0.0:5002
 
