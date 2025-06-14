@@ -1,0 +1,53 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  h2:
+    console:
+      enabled: true
+  mail:
+    host: test-host
+    port: 0000
+    username: test-username
+    password: test-password
+    properties:
+      mail:
+        smtp:
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+application:
+  file:
+    upload:
+      photos-output-path: /tmp/uploads
+  bot:
+    id: test-id
+    username: test-username
+  ml-recommendation:
+    base-url: http://localhost
+    service-token: test-token
+  gemini-ai:
+    api-key: test-key
+    base-url: http://localhost
+    model: test-model
+  supabase:
+    url: http://localhost
+    service-role:
+      key: test-key
+    jwt:
+      secret: test-secret
+
+frontend:
+  url: http://localhost
+  paths:
+    groups: test-url
