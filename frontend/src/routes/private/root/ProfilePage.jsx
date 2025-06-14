@@ -1,10 +1,11 @@
+import { Link } from "react-router-dom";
 import { CgProfile } from "react-icons/cg";
 import { useAuth } from "../../../context/AuthContext";
 import { ProfilePageSkeleton } from "../../../skeletons";
 
 const ProfilePage = () => {
   const { user, loading, fetchingUserData } = useAuth();
-  
+
   if (!user || loading || fetchingUserData) {
     return <ProfilePageSkeleton />;
   }
@@ -16,7 +17,7 @@ const ProfilePage = () => {
     learningPreference: { country, personality, learningStyles },
     accountPremium,
   } = user;
-  
+
   return (
     <div className="w-full text-white px-6 p-20">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -43,11 +44,9 @@ const ProfilePage = () => {
               </svg>
               {country || "Unknown"}
             </p>
-            <a href="/edit-profile">
-              <button className="mt-4 px-4 py-2 w-full bg-gray-900 text-white rounded hover:bg-gray-700">
-                Edit Profile
-              </button>
-            </a>
+            <Link to="/edit-profile">
+              <button className="...">Edit Profile</button>
+            </Link>
           </div>
         </div>
 
