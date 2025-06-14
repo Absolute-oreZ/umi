@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { testimonials,pricingOptions } from "../../constants";
+import { testimonials, pricingOptions } from "../../constants";
 
 const planType = ["Pay Monthly", "Pay Yearly (save 25%)"];
 
@@ -33,12 +33,12 @@ const LandingPage = () => {
         <div className="relative flex justify-between items-center z-10">
           <img className="w-6 h-6" src="icons/logo.png" alt="logo" />
           <div className="flex gap-5 items-center">
-            <a href="#" className="text-black">
+            <Link to="/resources" className="text-black">
               Resources
-            </a>
-            <a href="#" className="text-black">
+            </Link>
+            <Link to="/contact" className="text-black">
               Contact
-            </a>
+            </Link>
             <Link
               to="/login"
               className="px-4 py-2 border border-black text-dark-100 rounded hover:bg-gray-300 hover:border-white hover:text-black no-underline"
@@ -104,14 +104,14 @@ const LandingPage = () => {
 
           <button
             onClick={prevTestimonial}
-            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full text-slate-600 text-2xl hover:bg-opacity-50 transition-all duration-300 focus:outline-non"
+            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 rounded-full text-slate-600 text-2xl hover:bg-opacity-50 transition-all duration-300 focus:outline-none"
             aria-label="Previous testimonial"
           >
             &#8249;
           </button>
           <button
             onClick={nextTestimonial}
-            className="absolute top-1/2 right-4 -translate-y-1/2 text-slate-600 p-3 rounded-full  text-2xl hover:bg-opacity-50 transition-all duration-300 focus:outline-none "
+            className="absolute top-1/2 right-4 -translate-y-1/2 text-slate-600 p-3 rounded-full  text-2xl hover:bg-opacity-50 transition-all duration-300 focus:outline-none"
             aria-label="Next testimonial"
           >
             &#8250;
@@ -159,9 +159,9 @@ const LandingPage = () => {
             </div>
           </div>
           <div className="flex gap-10">
-            <a href="#">Terms of Service</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Sitemap</a>
+            <Link to="/terms">Terms of Service</Link>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/sitemap">Sitemap</Link>
           </div>
         </div>
       </footer>
@@ -169,6 +169,7 @@ const LandingPage = () => {
   );
 };
 
+// The rest of your components unchanged
 const StatisticCard = ({ emoji, count, title }) => (
   <div className="flex items-center gap-3 text-xl w-64 justify-center text-slate-700">
     <span className="text-2xl">{emoji}</span>
