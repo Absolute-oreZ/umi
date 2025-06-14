@@ -1,42 +1,78 @@
-# General
-*.log
-*.env
+#####################################
+# OS-specific
+#####################################
 .DS_Store
-node_modules/
-dist/
-build/
-.vscode/
-.idea/
-__pycache__/
-.venv/
+Thumbs.db
 
-# Maven
-target/
+#####################################
+# Logs
+#####################################
+*.log
+logs/
+*.pid
 
-# Java
-*.class
-
-# Secrets
-secrets.yml
+#####################################
+# Environment and Secrets
+#####################################
+.env
+.env.*
+secrets/
+**/secrets.yml
 *.secrets.yml
 
-# Python
+#####################################
+# Dependency Directories
+#####################################
+node_modules/
+target/
+__pycache__/
+.Python
+.venv/
+
+#####################################
+# Compiled Files and Caches
+#####################################
 *.pyc
 *.pyo
 *.pyd
+*.class
+dist/
+build/
+*.cache
+
+#####################################
+# Editor & IDE Files
+#####################################
+.vscode/
+.idea/
+*.code-workspace
+
+#####################################
+# Docker
+#####################################
+*.pid
+
+#####################################
+# Java
+#####################################
+*.class
+target/
+
+#####################################
+# Python
+#####################################
+__pycache__/
+*.py[cod]
 .Python
 
-# React (Vite)
+#####################################
+# React (Vite / Next / Turbo)
+#####################################
 frontend/.next/
 frontend/.turbo/
 frontend/.cache/
 
-# VS Code
-*.code-workspace
-
-# Docker
-*.pid
-
+#####################################
+# Keycloak
+#####################################
 keycloak/config/umi-realm-config
-
-secrets/
