@@ -38,6 +38,7 @@ jobs:
         SPRING_PROFILES_ACTIVE: test
       run: |
         cd backend
+	chmod +x mvnw
         ./mvnw test
     
     # test frontend
