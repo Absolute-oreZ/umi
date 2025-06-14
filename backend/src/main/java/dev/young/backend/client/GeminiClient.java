@@ -23,11 +23,11 @@ public class GeminiClient {
     @Value("${application.gemini-ai.model}")
     private String model;
 
-    private WebClient webClient;
+    private WebClient geminiWebClient;
 
     @PostConstruct
     private void init() {
-        this.webClient = WebClient.builder()
+        this.geminiWebClient = WebClient.builder()
                 .baseUrl(baseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
@@ -44,7 +44,7 @@ public class GeminiClient {
                 )
         );
 
-        return webClient.post()
+        return geminiWebClient.post()
                 .uri(endpoint)
                 .bodyValue(requestBody)
                 .retrieve()

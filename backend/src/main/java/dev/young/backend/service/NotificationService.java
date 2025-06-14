@@ -1,6 +1,6 @@
 package dev.young.backend.service;
 
-import dev.young.backend.dto.notification.NotificationDTO;
+import dev.young.backend.dto.message.NotificationDTO;
 import dev.young.backend.repository.GroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -18,9 +18,9 @@ public class NotificationService {
         simpMessagingTemplate.convertAndSend(destination, notificationDTO);
     }
 
-    public void sendNotificationToSingleLearner(String learnerId, NotificationDTO notificationDTO) {
+    public void sendNotificationToSingleUser(String userId, NotificationDTO notificationDTO) {
         simpMessagingTemplate.convertAndSendToUser(
-                learnerId,
+                userId,
                 "/notification",
                 notificationDTO
         );

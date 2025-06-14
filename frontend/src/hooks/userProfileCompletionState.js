@@ -2,6 +2,7 @@ import { useState } from "react";
 
 export default function userProfileCompletionState(){
     const [profileData, setProfileData] = useState({
+        username: "",
         country: "",
         profilePicture: null,
         personality: "",

@@ -1,5 +1,3 @@
-import React from "react";
-
 const GroupsSkeleton = () => {
   return (
     <div className="flex flex-1 w-full min-h-screen animate-pulse">

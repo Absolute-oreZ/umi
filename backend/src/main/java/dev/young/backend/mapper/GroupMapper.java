@@ -8,7 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
-@Mapper(componentModel = "spring", uses = {MessageMapper.class, LearnerMapper.class})
+@Mapper(componentModel = "spring", uses = {MessageMapper.class, UserMapper.class})
 public interface GroupMapper {
 
     @Mapping(target = "members", source = "members")
@@ -18,8 +18,8 @@ public interface GroupMapper {
 
     @Named("mapNoOfOnlineMembers")
     default int mapNoOfOnlineMembers(Group group) {
-        return (int) group.getLearnerGroups().stream()
-                .filter(lg -> lg.getLearner().isOnline())
+        return (int) group.getUserGroups().stream()
+                .filter(ug -> ug.getUser().isOnline())
                 .count();
     }
 

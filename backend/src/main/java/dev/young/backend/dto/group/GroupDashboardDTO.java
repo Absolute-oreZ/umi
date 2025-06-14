@@ -11,5 +11,5 @@ public class GroupDashboardDTO {
     List<GroupDTO> currentGroups;
     List<GroupDTO> recommendedGroups;
     List<JoinGroupRequestDTO> othersRequests;
-    List<JoinGroupRequestDTO> currentLearnersRequests;
+    List<JoinGroupRequestDTO> currentUsersRequests;
 }

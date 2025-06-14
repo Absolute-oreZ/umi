@@ -30,25 +30,25 @@ public class GroupController {
     private final RecommendationService recommendationService;
 
     @GetMapping
-    public ResponseEntity<GroupDashboardDTO> getAllGroupsData(Authentication connectedUser) {
+    public ResponseEntity<GroupDashboardDTO> getAllGroupsData(Authentication authentication) {
         GroupDashboardDTO groupDashboardDTO = GroupDashboardDTO.builder()
-                .currentGroups(groupService.getCurrentGroupsByCurrentLearner(connectedUser))
-                .recommendedGroups(recommendationService.getRecommendedGroups(connectedUser))
-                .currentLearnersRequests(groupService.getCurrentLearnersRequests(connectedUser))
-                .othersRequests(groupService.getOthersRequests(connectedUser))
+                .currentGroups(groupService.getCurrentGroupsByCurrentUser(authentication))
+                .recommendedGroups(recommendationService.getRecommendedGroups(authentication))
+                .currentUsersRequests(groupService.getCurrentUsersRequests(authentication))
+                .othersRequests(groupService.getOthersRequests(authentication))
                 .build();
 
         return ResponseEntity.ok(groupDashboardDTO);
     }
 
     @GetMapping("/{groupId}")
-    public ResponseEntity<GroupDTO> getCommonGroups(@PathVariable("groupId") Long groupId,Authentication connectedUser) {
-        return ResponseEntity.ok(groupService.getGroupById(groupId,connectedUser));
+    public ResponseEntity<GroupDTO> getCommonGroups(@PathVariable("groupId") Long groupId,Authentication authentication) {
+        return ResponseEntity.ok(groupService.getGroupById(groupId,authentication));
     }
 
     @GetMapping("/common/{username}")
-    public ResponseEntity<List<GroupDTO>> getCommonGroups(@PathVariable String username, Authentication connectedUser) {
-        List<GroupDTO> groupDTOS = groupService.getCommonGroups(username, connectedUser);
+    public ResponseEntity<List<GroupDTO>> getCommonGroups(@PathVariable String username, Authentication authentication) {
+        List<GroupDTO> groupDTOS = groupService.getCommonGroups(username, authentication);
 
         return ResponseEntity.ok(groupDTOS);
     }
@@ -60,21 +60,21 @@ public class GroupController {
 
     @PostMapping("/new")
     @ResponseStatus(HttpStatus.CREATED)
-    public ResponseEntity<GroupDTO> createGroup(@Valid @ModelAttribute NewGroupDTO newGroupDTO, @Parameter() @RequestParam(value = "icon", required = false) MultipartFile icon, Authentication connectedUser) {
-        return ResponseEntity.ok(groupService.createGroup(newGroupDTO, icon, connectedUser));
+    public ResponseEntity<GroupDTO> createGroup(@Valid @ModelAttribute NewGroupDTO newGroupDTO, @Parameter() @RequestParam(value = "icon", required = false) MultipartFile icon, Authentication authentication) {
+        return ResponseEntity.ok(groupService.createGroup(newGroupDTO, icon, authentication));
     }
 
     @PutMapping("/edit")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void editGroup(@ModelAttribute GroupDTO groupDTO, @Parameter() @RequestParam(value = "icon", required = false) MultipartFile icon, Authentication connectedUser) {
+    public void editGroup(@ModelAttribute GroupDTO groupDTO, @Parameter() @RequestParam(value = "icon", required = false) MultipartFile icon, Authentication authentication) {
         groupService.editGroup(groupDTO, icon);
     }
 
     @PatchMapping("/join/{groupId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public ResponseEntity<JoinGroupRequestDTO> askToJoinGroup(Authentication connectedUser, @PathVariable Long groupId) throws
+    public ResponseEntity<JoinGroupRequestDTO> askToJoinGroup(Authentication authentication, @PathVariable Long groupId) throws
             MessagingException, UnsupportedEncodingException {
-        return ResponseEntity.ok(groupService.askToJoinGroup(connectedUser, groupId));
+        return ResponseEntity.ok(groupService.askToJoinGroup(authentication, groupId));
     }
 
     @PatchMapping("/cancel/{requestId}")
@@ -85,20 +85,20 @@ public class GroupController {
 
     @PatchMapping("/leave/{groupId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void leaveGroup(Authentication connectedUser, @PathVariable Long groupId) {
-        groupService.leaveGroup(connectedUser, groupId);
+    public void leaveGroup(Authentication authentication, @PathVariable Long groupId) {
+        groupService.leaveGroup(authentication, groupId);
     }
 
     @PatchMapping("/{action}/{requestId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void handleJoinGroupRequest(Authentication connectedUser, @PathVariable("action") String action, @PathVariable("requestId") Long requestId) throws MessagingException, UnsupportedEncodingException {
-        groupService.handleJoinGroupRequest(connectedUser, action, requestId);
+    public void handleJoinGroupRequest(Authentication authentication, @PathVariable("action") String action, @PathVariable("requestId") Long requestId) throws MessagingException, UnsupportedEncodingException {
+        groupService.handleJoinGroupRequest(authentication, action, requestId);
     }
 
-    @PatchMapping("/assign-new-admin/{groupId}/{learnerId}")
+    @PatchMapping("/assign-new-admin/{groupId}/{userId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void leaveGroup(Authentication connectedUser, @PathVariable Long
-            groupId, @PathVariable String learnerId) {
-        groupService.assignNewAdmin(connectedUser, groupId, learnerId);
+    public void leaveGroup(Authentication authentication, @PathVariable Long
+            groupId, @PathVariable String userId) {
+        groupService.assignNewAdmin(authentication, groupId, userId);
     }
 }

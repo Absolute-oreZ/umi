@@ -2,16 +2,16 @@ package dev.young.backend.service;
 
 import dev.young.backend.dto.message.MessageDTO;
 import dev.young.backend.dto.message.NewMessageDTO;
-import dev.young.backend.dto.notification.NotificationDTO;
+import dev.young.backend.dto.message.NotificationDTO;
 import dev.young.backend.entity.Group;
-import dev.young.backend.entity.Learner;
 import dev.young.backend.entity.Message;
+import dev.young.backend.entity.Profile;
 import dev.young.backend.enums.FileType;
 import dev.young.backend.enums.MessageType;
 import dev.young.backend.mapper.MessageMapper;
 import dev.young.backend.repository.GroupRepository;
-import dev.young.backend.repository.LearnerRepository;
 import dev.young.backend.repository.MessageRepository;
+import dev.young.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 import static dev.young.backend.util.FileUtil.mapMessageTypeToFileType;
 
@@ -34,49 +35,52 @@ public class MessageService {
     private String botId;
 
     private final BotService botService;
+    private final SupabaseStorageService supabaseStorageService;
     private final FileService fileService;
     private final NotificationService notificationService;
     private final MessageMapper messageMapper;
     private final GroupRepository groupRepository;
-    private final LearnerRepository learnerRepository;
+    private final UserRepository userRepository;
     private final MessageRepository messageRepository;
 
-    public MessageDTO saveMessage(NewMessageDTO newMessageDTO, MultipartFile media, Authentication connectedUser) {
-        String learnerId = connectedUser.getName();
+    public MessageDTO saveMessage(NewMessageDTO newMessageDTO, MultipartFile media, Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
         Group group = groupRepository.findById(newMessageDTO.getGroupId()).orElseThrow(() -> new EntityNotFoundException("Group not found"));
-        Learner learner = learnerRepository.findById(learnerId).orElseThrow(() -> new EntityNotFoundException("Learner not found with id " + learnerId));
-        Learner bot = learnerRepository.findById(botId).orElseThrow(() -> new EntityNotFoundException("BOT NOT FOUND"));
+        Profile user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
+        Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("BOT NOT FOUND"));
 
         Message message = Message.builder()
                 .messageType(newMessageDTO.getMessageType())
-                .senderProfilePicturePath(learner.getProfilePicturePath())
-                .senderUsername(learner.getUsername())
+                .senderProfilePicturePath(user.getProfilePicturePath())
+                .senderUsername(user.getUsername())
                 .group(group)
                 .build();
 
         if (media == null) {
             message.setContent(newMessageDTO.getContent());
         } else {
-            System.out.println("media is not null");
             FileType fileType = mapMessageTypeToFileType(newMessageDTO.getMessageType());
-
-            System.out.println("filetype: " + fileType);
             if (fileType != null) {
-                String mediaPath = fileService.saveFile(media, "groups", String.valueOf(group.getId()), fileType);
+                String mediaPath = supabaseStorageService.uploadFile(
+                        media,
+                        "groups",
+                        String.valueOf(group.getId()),
+                        fileType
+                );
                 message.setMediaPath(mediaPath);
             } else {
                 throw new IllegalStateException("media Filetype is unknown");
             }
         }
 
-        message.getSeenByLearners().add(learner);
+        message.getSeenByUsers().add(user);
         group.setLastMessage(message);
         messageRepository.save(message);
 
         NotificationDTO notificationDTO = NotificationDTO.builder()
                 .title(group.getName())
                 .content(newMessageDTO.getContent())
-                .senderUsername(learner.getUsername())
+                .senderUsername(user.getUsername())
                 .groupId(group.getId())
                 .iconPath(group.getIconPath())
                 .messageDTO(messageMapper.toDTO(message))
@@ -98,8 +102,8 @@ public class MessageService {
     }
 
     @Transactional
-    public void markMessagesToSeen(Long groupId, Authentication connectedUser) {
-        String learnerId = connectedUser.getName();
-        messageRepository.markAllMessagesAsSeenNative(groupId, learnerId);
+    public void markMessagesToSeen(Long groupId, Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        messageRepository.markAllMessagesAsSeenNative(groupId, userId);
     }
 }

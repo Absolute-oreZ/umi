@@ -3,20 +3,20 @@ import { formatTimestamp, formatImagePath } from "../../utils";
 import TitleCard from "./TitleCard";
 
 const DetailsCard = ({
-  learner,
+  user,
   group,
   toggleCard,
   isCardVisible,
   commonGroups,
 }) => {
   const formattedPath =
-    learner && learner.profilePicturePath
-      ? formatImagePath(learner.profilePicturePath)
+    user && user.profilePicturePath
+      ? formatImagePath(user.profilePicturePath)
       : group && group.iconPath
       ? formatImagePath(group.iconPath)
       : null;
 
-  const name = learner ? learner.username : group.name;
+  const name = user ? user.username : group.name;
 
   return (
     <div
@@ -29,7 +29,7 @@ const DetailsCard = ({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {learner ? (
+        {user ? (
           <>
             <div className="rounded-lg flex items-center justify-center">
               {formattedPath ? (
@@ -46,7 +46,7 @@ const DetailsCard = ({
                 <p className="text-3xl font-semibold">{name}</p>
                 <div className="flex items-center text-sm text-gray-400">
                   <FaLocationDot />
-                  <p>{learner.learningPreference.country || "Laughtale"}</p>
+                  <p>{user.learningPreference.country || "Laughtale"}</p>
                 </div>
               </div>
 
@@ -56,7 +56,7 @@ const DetailsCard = ({
                   Badges
                 </h2>
                 <div className="flex space-x-4 text-base border-t-2 rounded-md border-cyan-500 py-3">
-                  {learner.accountPremium ? (
+                  {user.accountPremium ? (
                     <span className="bg-yellow-400 text-black px-3 py-1 rounded-full text-sm font-bold">
                       ⭐ Premium Member
                     </span>
@@ -73,22 +73,22 @@ const DetailsCard = ({
               </h2>
               <p className="text-base text-justify border-t-2 rounded-md border-cyan-500 py-3">
                 Hello, I'm {name} from{" "}
-                {learner.learningPreference.country || "an unknown location"}! I
+                {user.learningPreference.country || "an unknown location"}! I
                 enjoy learning through a combination of{" "}
-                {learner.learningPreference.learningStyles.map(
+                {user.learningPreference.learningStyles.map(
                   (style, index) => (
                     <span
                       key={index}
                       className={`${
                         index !==
-                        learner.learningPreference.learningStyles.length - 1
+                        user.learningPreference.learningStyles.length - 1
                           ? "mr-1"
                           : ""
                       } text-blue-400`}
                     >
                       {style}
                       {index !==
-                      learner.learningPreference.learningStyles.length - 1
+                      user.learningPreference.learningStyles.length - 1
                         ? ","
                         : ""}
                     </span>
@@ -96,15 +96,15 @@ const DetailsCard = ({
                 )}
                 . I'm actually an{" "}
                 <span className="text-cyan-400">
-                  {learner.learningPreference.personality}
+                  {user.learningPreference.personality}
                 </span>
                 . Feel free to drop me a message at{" "}
                 <a
                   className="hover:underline hover:text-blue-400"
                   target="_blank"
-                  href={`mailto:${learner.email}`}
+                  href={`mailto:${user.email}`}
                 >
-                  {learner.email}
+                  {user.email}
                 </a>
               </p>
             </div>
@@ -164,7 +164,7 @@ const DetailsCard = ({
 
             <div className="flex flex-col mb-2 gap-2">
               <p className="text-light-100">Members</p>
-              {group.members.map((member) => (<TitleCard key={member.id} learner={member} isAdmin={member.id === group.admin.id} />))}
+              {group.members.map((member) => (<TitleCard key={member.id} user={member} isAdmin={member.id === group.admin.id} />))}
             </div>
           </>
         )}

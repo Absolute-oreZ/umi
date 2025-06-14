@@ -2,6 +2,7 @@ package dev.young.backend.service;
 
 import dev.young.backend.client.SupabaseClient;
 import dev.young.backend.enums.FileType;
+import dev.young.backend.util.FileUtil;
 import jakarta.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,8 +27,8 @@ public class SupabaseStorageService {
             @Nonnull String id,
             @Nonnull FileType fileType
     ) {
-        String fileExtension = getFileExtension(sourceFile.getOriginalFilename());
-        String originalName = originalNameWithoutExtension(sourceFile.getOriginalFilename());
+        String fileExtension = FileUtil.getFileExtension(sourceFile);
+        String originalName = FileUtil.getOriginalNameWithoutExtension(sourceFile);
         String uploadPath = rootFolder + "/" + id + "/" + fileType.getName();
         String objectPath = uploadPath + "/" + originalName + "." + fileExtension;
 
@@ -40,25 +41,22 @@ public class SupabaseStorageService {
         }
     }
 
-    private String getFileExtension(String originalFilename) {
-        if (originalFilename == null || originalFilename.isEmpty()) {
-            return "";
+    public String uploadSharedResource(
+            @Nonnull MultipartFile file,
+            @Nonnull String category
+    ) {
+        String fileExtension = FileUtil.getFileExtension(file);
+        String originalName = FileUtil.getOriginalNameWithoutExtension(file);
+        String uploadPath = "shared/" + category;
+        String objectPath = uploadPath + "/" + originalName + "." + fileExtension;
+
+        try {
+            supabaseClient.putToStorage(objectPath, file.getBytes()).block();
+            return buildPublicUrl(objectPath);
+        } catch (Exception e) {
+            throw new RuntimeException("Upload failed: " + e.getMessage(), e);
         }
 
-        int lastDotIndex = originalFilename.lastIndexOf('.');
-
-        if (lastDotIndex == -1) {
-            return "";
-        }
-
-        return originalFilename.substring(lastDotIndex + 1).toLowerCase();
-    }
-
-    private String originalNameWithoutExtension(String filename) {
-        if (filename == null || filename.isEmpty()) return "file";
-        int dot = filename.lastIndexOf(".");
-        String fileName = dot == -1 ? filename : filename.substring(0, dot);
-        return fileName.toLowerCase().replaceAll("\\s+", "_");
     }
 
     private String buildPublicUrl(String objectPath) {

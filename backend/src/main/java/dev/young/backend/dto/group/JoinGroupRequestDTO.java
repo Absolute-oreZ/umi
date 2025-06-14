@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class JoinGroupRequestDTO {
     Long requestId;
-    String requestLearnerUsername;
+    String requestUserUsername;
+    String requestUserProfilePicturePath;
     String groupName;
+    String groupIconPath;
 }

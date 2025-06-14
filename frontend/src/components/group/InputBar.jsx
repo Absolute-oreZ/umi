@@ -28,11 +28,11 @@ import {
 import { toast, Slide } from "react-toastify";
 
 const InputBar = ({ groupId, members, handleMessageSent }) => {
-  // const recorderControls = useAudioRecorder(); // ❌ Voice recording
+  // const recorderControls = useAudioRecorder();
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [media, setMedia] = useState(null);
-  const [audioDuration, setAudioDuration] = useState(null); // ❌
+  const [audioDuration, setAudioDuration] = useState(null); //
   const [mediaUrl, setMediaUrl] = useState("");
   const [messageType, setMessageType] = useState("TEXT");
   const [isDiscarding, setIsDiscarding] = useState(false);
@@ -42,7 +42,7 @@ const InputBar = ({ groupId, members, handleMessageSent }) => {
   const [mentionQuery, setMentionQuery] = useState(null);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
-  // const wavesurferRef = useRef(null); // ❌
+  // const wavesurferRef = useRef(null);
   const textareaRef = useRef(null);
   const suggestionsRef = useRef(null);
   const suggestionItemsRef = useRef([]);
@@ -53,10 +53,10 @@ const InputBar = ({ groupId, members, handleMessageSent }) => {
 
   const hasMessage = message.trim().length > 0;
   const hasMedia = media !== null;
-  const isRecording = false; // recorderControls.isRecording; ❌
+  const isRecording = false; // recorderControls.isRecording;
   const canAttachFile = !hasMessage && !hasMedia && !isRecording;
   const canSelectEmoji = !hasMedia && !isRecording;
-  const canRecord = false; // !hasMessage && !hasMedia; ❌
+  const canRecord = false; // !hasMessage && !hasMedia;
   const canType = !hasMedia && !isRecording;
 
   const handleEmojiSelect = (emoji) => {
@@ -254,14 +254,14 @@ const InputBar = ({ groupId, members, handleMessageSent }) => {
       }
     }
 
-    if (e.key === "Enter" && !e.shiftKey && showSendButton) {
+    if (e.key === "Enter" && !e.shiftKey && (hasMessage || hasMedia)) {
       e.preventDefault();
       send();
     }
   };
 
   const getHighlightedText = (text) => {
-    return text.split(/(@\w+)/g).map((part, idx) => {
+    return text.split(/(@[\w-]+)/g).map((part, idx) => {
       if (part.startsWith("@")) {
         return (
           <span key={idx} className="text-cyan-400 font-semibold">

@@ -37,7 +37,7 @@ public class Group extends BaseEntity {
 
     @OneToMany(mappedBy = "group")
     @Builder.Default
-    private Set<LearnerGroup> learnerGroups = new HashSet<>();
+    private Set<UserGroup> userGroups = new HashSet<>();
 
     @OneToMany(mappedBy = "group")
     @OrderBy("createdDate DESC")
@@ -46,23 +46,23 @@ public class Group extends BaseEntity {
 
     @Transient
     public int getNoOfMembers() {
-        return (int) learnerGroups.stream().filter(lg -> lg.getMemberStatus() == MemberStatus.MEMBER).count();
+        return (int) userGroups.stream().filter(ug -> ug.getMemberStatus() == MemberStatus.MEMBER).count();
     }
 
     @Transient
-    public List<Learner> getMembers() {
-        return learnerGroups.stream()
-                .filter(lg -> lg.getMemberStatus() == MemberStatus.MEMBER || lg.getMemberStatus() == MemberStatus.BOT)
-                .map(LearnerGroup::getLearner)
+    public List<Profile> getMembers() {
+        return userGroups.stream()
+                .filter(ug -> ug.getMemberStatus() == MemberStatus.MEMBER || ug.getMemberStatus() == MemberStatus.BOT)
+                .map(UserGroup::getUser)
                 .toList();
     }
 
 
     @Transient
-    public Learner getAdmin() {
-        for (LearnerGroup lg : learnerGroups) {
-            if (lg.isAdmin()) {
-                return lg.getLearner();
+    public Profile getAdmin() {
+        for (UserGroup ug : userGroups) {
+            if (ug.isAdmin()) {
+                return ug.getUser();
             }
         }
 

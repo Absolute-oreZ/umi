@@ -1,5 +1,3 @@
-import React from "react";
-
 const EditProfileSkeleton = () => {
   return (
     <div className="w-full text-white px-6 p-20 animate-pulse">

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findMessagesByGroup(Group group);
@@ -17,21 +18,19 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
                 SELECT COUNT(m)
                 FROM Message m
                 WHERE m.group.id = :groupId
-                  AND (SELECT l FROM Learner l WHERE l.username = :username) NOT MEMBER OF m.seenByLearners
+                  AND (SELECT u FROM Profile u WHERE u.username = :username) NOT MEMBER OF m.seenByUsers
             """)
     int countUnseenMessagesByGroupIdAndUsername(@Param("groupId") Long groupId, @Param("username") String username);
 
     @Modifying
     @Query(value = """
-                INSERT INTO message_seen (message_id, learner_id)
-                SELECT m.id, :learnerId
+                INSERT INTO message_seen (message_id, user_id)
+                SELECT m.id, :userId
                 FROM message m
                 WHERE m.group_id = :groupId
-                AND m.id NOT IN (
-                    SELECT ms.message_id FROM message_seen ms WHERE ms.learner_id = :learnerId
-                )
+                ON CONFLICT (message_id,user_id) DO NOTHING
             """, nativeQuery = true)
-    void markAllMessagesAsSeenNative(@Param("groupId") Long groupId, @Param("learnerId") String learnerId);
+    void markAllMessagesAsSeenNative(@Param("groupId") Long groupId, @Param("userId") UUID userId);
 
     @Query("""
             SELECT m

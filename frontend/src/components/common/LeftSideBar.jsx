@@ -1,8 +1,8 @@
-import { useKeycloak } from "@react-keycloak/web";
 import { Link, useLocation } from "react-router-dom";
 import { MdGroups, MdEvent, MdLogout } from "react-icons/md";
 import { FaFileArchive } from "react-icons/fa";
 import { GiPlagueDoctorProfile } from "react-icons/gi";
+import { useAuth } from "../../context/AuthContext";
 
 const navLinks = [
   {
@@ -10,11 +10,11 @@ const navLinks = [
     icon: <MdGroups />,
     tooltip: "Groups",
   },
-  {
-    to: "/events",
-    icon: <MdEvent />,
-    tooltip: "Events",
-  },
+  // {
+  //   to: "/events",
+  //   icon: <MdEvent />,
+  //   tooltip: "Events",
+  // },
   {
     to: "/resources",
     icon: <FaFileArchive />,
@@ -28,18 +28,12 @@ const navLinks = [
 ];
 
 const LeftSideBar = () => {
-  const { keycloak } = useKeycloak();
   const location = useLocation();
 
-  const redirectUrl = import.meta.env.VITE_KEYCLOAK_REDIRECT_URL;
-
-  const handleLogout = async () => {
-    await keycloak.logout({ redirectUri: redirectUrl });
-  };
+  const {signOut} = useAuth();
 
   return (
     <div className="h-screen w-[70px] bg-gray-900 flex flex-col justify-between items-center py-10 shadow-md">
-      {/* Top Nav Icons */}
       <div className="flex flex-col gap-6">
         {navLinks.map(({ to, icon, tooltip }) => {
           const isActive = location.pathname === to;
@@ -63,9 +57,8 @@ const LeftSideBar = () => {
         })}
       </div>
 
-      {/* Logout Icon */}
       <button
-        onClick={handleLogout}
+        onClick={signOut}
         className="group relative flex items-center justify-center p-3 rounded-md text-gray-400 hover:bg-red-600 hover:text-white transition"
         aria-label="Logout"
       >

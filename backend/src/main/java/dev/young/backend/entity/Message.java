@@ -37,12 +37,12 @@ public class Message extends BaseEntity {
     @JoinTable(
             name = "message_seen",
             joinColumns = @JoinColumn(name = "message_id"),
-            inverseJoinColumns = @JoinColumn(name = "learner_id")
+            inverseJoinColumns = @JoinColumn(name = "user_id")
     )
-    private Set<Learner> seenByLearners = new HashSet<>();
+    private Set<Profile> seenByUsers = new HashSet<>();
 
     @Transient
     public boolean isMessageFullySeen(){
-        return group.getNoOfMembers() == seenByLearners.size();
+        return group.getNoOfMembers() == seenByUsers.size();
     }
 }

@@ -21,8 +21,13 @@ export const validateFileSize = (file, maxSize) => {
 };
 
 export const formatImagePath = (path) => {
-  return path.replace(BASE_URL + "/" + BUCKET + "/" + path);
-}
+  const prefix = `${BASE_URL}/${BUCKET}/`;
+  if (path.startsWith(prefix)) {
+    return path.slice(prefix.length);
+  }
+  return path;
+};
+
 
 export function byteArrayToBase64(byteArray) {
   const blob = new Blob([byteArray], { type: 'image/jpeg' });

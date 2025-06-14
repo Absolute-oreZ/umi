@@ -38,3 +38,5 @@ frontend/.cache/
 *.pid
 
 keycloak/config/umi-realm-config
+
+secrets/

@@ -2,15 +2,10 @@ import { createContext, useState, useEffect, useContext, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import SockJS from "sockjs-client/dist/sockjs";
 import { Client } from "@stomp/stompjs";
-import { useKeycloak } from "@react-keycloak/web";
 import { toast, Zoom } from "react-toastify";
-import axiosInstance from "../api/axiosInstance";
+import { customFetch } from "../api/fetchInstance";
 import MessageToast from "../components/common/MessageToast";
-import {
-  formatImagePath,
-  getMediaTypeFromExtension,
-  moveToFirst,
-} from "../utils";
+import { formatImagePath, moveToFirst } from "../utils";
 import { useAuth } from "./AuthContext";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -22,8 +17,7 @@ export const useWebSocket = () => useContext(WebSocketContext);
 const WebSocketProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isFetchingUserData } = useAuth();
-  const { keycloak } = useKeycloak();
+  const { user, session, loading, fetchingUserData } = useAuth();
 
   const [socket, setSocket] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -31,7 +25,7 @@ const WebSocketProvider = ({ children }) => {
   const [isFetchingGroups, setisFetchingGroups] = useState(false);
   const [recommendedGroups, setrecommendedGroups] = useState([]);
   const [othersRequests, setOthersRequests] = useState([]);
-  const [currentLearnersRequests, setCurrentLearnersRequests] = useState([]);
+  const [currentUsersRequests, setCurrentUsersRequests] = useState([]);
   const [messages, setMessages] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [currentGroups, setCurrentGroups] = useState([]);
@@ -60,8 +54,9 @@ const WebSocketProvider = ({ children }) => {
   const fetchGroups = async () => {
     try {
       setisFetchingGroups(true);
-      const response = await axiosInstance.get("/groups");
-      return response.data;
+      const response = await customFetch("/groups");
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error("Failed to fetch groups:", error);
       return [];
@@ -73,11 +68,12 @@ const WebSocketProvider = ({ children }) => {
   const fetchGroup = async (groupId) => {
     try {
       setisFetchingGroups(true);
-      const response = await axiosInstance.get(`/groups/${groupId}`);
-      return response.data;
+      const response = await customFetch(`/groups/${groupId}`);
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error("Failed to fetch group:", error);
-      return [];
+      return {};
     } finally {
       setisFetchingGroups(false);
     }
@@ -86,11 +82,12 @@ const WebSocketProvider = ({ children }) => {
   const fetchJoinGrouprequest = async (requestId) => {
     try {
       setisFetchingGroups(true);
-      const response = await axiosInstance.get(`/groups/request/${requestId}`);
-      return response.data;
+      const response = await customFetch(`/groups/request/${requestId}`);
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error("Failed to fetch join request:", error);
-      return [];
+      return {};
     } finally {
       setisFetchingGroups(false);
     }
@@ -99,8 +96,9 @@ const WebSocketProvider = ({ children }) => {
   const fetcMessagesByGroups = async (groupId) => {
     try {
       setIsFetchingMessages(true);
-      const response = await axiosInstance.get(`/messages/${groupId}/messages`);
-      return response.data;
+      const response = await customFetch(`/messages/${groupId}/messages`);
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error("Failed to fetch messages:", error);
       return [];
@@ -113,7 +111,9 @@ const WebSocketProvider = ({ children }) => {
     setSelectedGroup(group);
     if (group.noOfUnreadMessages > 0) {
       group.noOfUnreadMessages = 0;
-      await axiosInstance.patch(`/messages/${group.id}/seen`);
+      await customFetch(`/messages/${group.id}/seen`, {
+        method: "PATCH",
+      });
     }
     const fetchedMessages = await fetcMessagesByGroups(group.id);
     setMessages(fetchedMessages);
@@ -153,23 +153,30 @@ const WebSocketProvider = ({ children }) => {
   };
 
   const handleMessage = async (message, client) => {
+    const toastId = `${message.actionType || "message"}-${
+      message.requestId || message.messageDTO?.id
+    }`;
+
     if (message.actionType) {
       const actionType = message.actionType;
 
       if (actionType === "REQUEST_ACCEPTED") {
         const joinedGroup = await fetchGroup(message.groupId);
-        setCurrentGroups((prev) => [...prev, joinedGroup]);
+        setCurrentGroups((prev) => {
+          const groupExists = prev.some((group) => group.id === joinedGroup.id);
+          return groupExists ? prev : [...prev, joinedGroup];
+        });
         const subscription = subscribeToGroup(client, joinedGroup);
         setSubscriptions((prev) => [...prev, subscription]);
 
-        setCurrentLearnersRequests((prev) =>
+        setCurrentUsersRequests((prev) =>
           prev.filter((request) => request.requestId !== message.requestId)
         );
         setrecommendedGroups((prev) =>
           prev.filter((request) => request.requestId !== message.requestId)
         );
       } else if (actionType === "REQUEST_REJECTED") {
-        setCurrentLearnersRequests((prev) =>
+        setCurrentUsersRequests((prev) =>
           prev.filter((request) => request.requestId !== message.requestId)
         );
       } else if (actionType === "REQUEST_CANCELED") {
@@ -178,28 +185,36 @@ const WebSocketProvider = ({ children }) => {
         );
       } else if (actionType === "NEW_REQUEST") {
         const newRequest = await fetchJoinGrouprequest(message.requestId);
-        setOthersRequests((prev) => [...prev, newRequest]);
+        setOthersRequests((prev) => {
+          const exists = prev.some(
+            (request) => request.requestId === newRequest.requestId
+          );
+          return exists ? prev : [...prev, newRequest];
+        });
       }
 
-      toast(
-        <MessageToast
-          icon={formatImagePath(message.iconPath)}
-          title={message.title}
-          content={message.content}
-          handleToastMessageClick={() => handleToastMessageClick(message)}
-        />,
-        {
-          position: "bottom-right",
-          autoClose: 4000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: false,
-          theme: "dark",
-          transition: Zoom,
-          className: "rounded-lg shadow p-3",
-        }
-      );
+      if (!toast.isActive(toastId)) {
+        toast(
+          <MessageToast
+            icon={formatImagePath(message.iconPath)}
+            title={message.title}
+            content={message.content}
+            handleToastMessageClick={() => handleToastMessageClick(message)}
+          />,
+          {
+            toastId,
+            position: "bottom-right",
+            autoClose: 4000,
+            hideProgressBar: true,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: false,
+            theme: "dark",
+            transition: Zoom,
+            className: "rounded-lg shadow p-3",
+          }
+        );
+      }
     } else {
       const currentLocation = locationRef.current.pathname;
       const currentSelectedGroup = selectedGroupRef.current;
@@ -220,11 +235,18 @@ const WebSocketProvider = ({ children }) => {
         currentSelectedGroup.id === message.groupId;
 
       if (isViewingThisGroupChat) {
-        setMessages((prevMessages) => [...prevMessages, message.messageDTO]);
-        try {
-          await axiosInstance.patch(
-            `/messages/${currentSelectedGroup.id}/seen`
+        setMessages((prevMessages) => {
+          const messageExists = prevMessages.some(
+            (msg) => msg.id === message.messageDTO.id
           );
+          return messageExists
+            ? prevMessages
+            : [...prevMessages, message.messageDTO];
+        });
+        try {
+          await customFetch(`/messages/${currentSelectedGroup.id}/seen`, {
+            method: "PATCH",
+          });
         } catch (error) {
           console.error("📨 Failed to mark messages as seen:", error);
         }
@@ -232,25 +254,28 @@ const WebSocketProvider = ({ children }) => {
         currentUser &&
         message.senderUsername !== currentUser.username
       ) {
-        toast(
-          <MessageToast
-            icon={formatImagePath(message.iconPath)}
-            title={message.title}
-            content={message.content}
-            handleToastMessageClick={() => handleToastMessageClick(message)}
-          />,
-          {
-            position: "bottom-right",
-            autoClose: 4000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: false,
-            theme: "dark",
-            transition: Zoom,
-            className: "rounded-lg shadow p-3",
-          }
-        );
+        if (!toast.isActive(toastId)) {
+          toast(
+            <MessageToast
+              icon={formatImagePath(message.iconPath)}
+              title={message.title}
+              content={message.content}
+              handleToastMessageClick={() => handleToastMessageClick(message)}
+            />,
+            {
+              toastId,
+              position: "bottom-right",
+              autoClose: 4000,
+              hideProgressBar: true,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: false,
+              theme: "dark",
+              transition: Zoom,
+              className: "rounded-lg shadow p-3",
+            }
+          );
+        }
       }
     }
   };
@@ -260,15 +285,16 @@ const WebSocketProvider = ({ children }) => {
       const formData = new FormData();
       formData.append("groupId", groupId);
       formData.append("messageType", messageType);
+
       if (messageType === "TEXT") {
-        console.log("is content: " + content);
         formData.append("content", content);
-      } else {
-        console.log("is media: " + media);
+      } else if (media) {
         formData.append("media", media);
       }
-      await axiosInstance.post("/messages/new", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+
+      await customFetch("/messages/new", {
+        method: "POST",
+        body: formData,
       });
     } catch (error) {
       console.error("📤 Error sending message:", error);
@@ -289,16 +315,27 @@ const WebSocketProvider = ({ children }) => {
     setSubscriptions((prev) => [...prev, ...groupSubscriptions]);
   };
 
+  const parseJwt = (token) => {
+    try {
+      return JSON.parse(atob(token.split(".")[1]));
+    } catch (e) {
+      console.error("Invalid token structure", e);
+      return null;
+    }
+  };
+
   const connectWebSocket = async () => {
-    if (!keycloak.authenticated) {
+    if (!session?.access_token) {
       setSubscriptions([]);
       setCurrentGroups([]);
       return;
     }
 
+    console.log(session.access_token);
+
     const client = new Client({
       webSocketFactory: () => new SockJS(`${backendBaseurl}/ws`),
-      connectHeaders: { Authorization: `Bearer ${keycloak.token}` },
+      connectHeaders: { Authorization: `Bearer ${session.access_token}` },
       reconnectDelay: 5000,
       debug: (str) => console.log("🔌 WebSocket:", str),
     });
@@ -308,20 +345,37 @@ const WebSocketProvider = ({ children }) => {
       const {
         currentGroups = [],
         recommendedGroups = [],
-        currentLearnersRequests = [],
+        currentUsersRequests = [],
         othersRequests = [],
       } = fetchedGroups;
 
       setCurrentGroups(currentGroups);
       setrecommendedGroups(recommendedGroups);
-      setCurrentLearnersRequests(currentLearnersRequests);
+      setCurrentUsersRequests(currentUsersRequests);
       setOthersRequests(othersRequests);
 
       subscribeToGroups(client, currentGroups);
-      const userTopic = `/user/${keycloak.tokenParsed.sub}/notification`;
-      client.subscribe(userTopic, (message) =>
-        handleMessage(JSON.parse(message.body), client)
-      );
+
+      if (session?.access_token) {
+        try {
+          const tokenPayload = parseJwt(session.access_token);
+          if (!tokenPayload) {
+            throw new Error("Token parsing failed");
+          }
+
+          const userId = tokenPayload.sub;
+
+          if (userId) {
+            const userTopic = `/user/${userId}/notification`;
+            client.subscribe(userTopic, (message) =>
+              handleMessage(JSON.parse(message.body), client)
+            );
+            console.log("🔌 Subscribed to user topic:", userTopic);
+          }
+        } catch (error) {
+          console.error("Token validation failed:", error);
+        }
+      }
     };
 
     client.onStompError = (frame) => {
@@ -334,7 +388,7 @@ const WebSocketProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    if (!isFetchingUserData && keycloak.authenticated && user) {
+    if (!loading && session && user) {
       connectWebSocket();
     }
 
@@ -344,7 +398,7 @@ const WebSocketProvider = ({ children }) => {
         socket.deactivate();
       }
     };
-  }, [keycloak.authenticated, isFetchingUserData, user]);
+  }, [loading, fetchingUserData, user]);
 
   useEffect(() => {
     if (location.pathname !== "/groups") {
@@ -361,7 +415,7 @@ const WebSocketProvider = ({ children }) => {
         isFetchingGroups,
         selectedGroup,
         othersRequests,
-        currentLearnersRequests,
+        currentUsersRequests,
         recommendedGroups,
         messages,
         currentGroups,
@@ -371,7 +425,7 @@ const WebSocketProvider = ({ children }) => {
         subscribeToGroup,
         setSubscriptions,
         setisFetchingGroups,
-        setCurrentLearnersRequests,
+        setCurrentUsersRequests,
         setSelectedGroup,
         setCurrentGroups,
         setOthersRequests,

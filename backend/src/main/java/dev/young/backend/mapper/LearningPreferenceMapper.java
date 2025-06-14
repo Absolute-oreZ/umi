@@ -1,6 +1,6 @@
 package dev.young.backend.mapper;
 
-import dev.young.backend.dto.learning_preference.LearningPreferenceDTO;
+import dev.young.backend.dto.user.LearningPreferenceDTO;
 import dev.young.backend.entity.LearningPreference;
 import org.mapstruct.Mapper;
 

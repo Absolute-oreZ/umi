@@ -7,16 +7,16 @@ import dev.young.backend.dto.exception.OperationNotPermittedException;
 import dev.young.backend.dto.group.GroupDTO;
 import dev.young.backend.dto.group.JoinGroupRequestDTO;
 import dev.young.backend.dto.group.NewGroupDTO;
-import dev.young.backend.dto.notification.NotificationDTO;
+import dev.young.backend.dto.message.NotificationDTO;
 import dev.young.backend.entity.Group;
-import dev.young.backend.entity.Learner;
-import dev.young.backend.entity.LearnerGroup;
+import dev.young.backend.entity.Profile;
+import dev.young.backend.entity.UserGroup;
 import dev.young.backend.entity.Message;
 import dev.young.backend.enums.*;
 import dev.young.backend.mapper.GroupMapper;
 import dev.young.backend.repository.GroupRepository;
-import dev.young.backend.repository.LearnerGroupRepository;
-import dev.young.backend.repository.LearnerRepository;
+import dev.young.backend.repository.UserGroupRepository;
+import dev.young.backend.repository.UserRepository;
 import dev.young.backend.repository.MessageRepository;
 import jakarta.mail.MessagingException;
 import jakarta.persistence.EntityNotFoundException;
@@ -51,75 +51,77 @@ public class GroupService {
     private final NotificationService notificationService;
     private final MessageRepository messageRepository;
     private final GroupRepository groupRepository;
-    private final LearnerRepository learnerRepository;
-    private final LearnerGroupRepository learnerGroupRepository;
+    private final UserRepository userRepository;
+    private final UserGroupRepository userGroupRepository;
 
-    public List<GroupDTO> getCurrentGroupsByCurrentLearner(Authentication connectedUser) {
-        String learnerId = connectedUser.getName();
-        if (!learnerRepository.existsById(learnerId)) {
-            throw new EntityNotFoundException("learner not found with id " + learnerId);
+    public List<GroupDTO> getCurrentGroupsByCurrentUser(Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        if (!userRepository.existsById(userId)) {
+            throw new EntityNotFoundException("User not found with id " + userId);
         }
 
-        return learnerGroupRepository.findCurrentGroupsByLearner(learnerId, MemberStatus.MEMBER).stream().map(g -> groupMapper.toDTO(g, learnerId, messageRepository)).toList();
+        return userGroupRepository.findCurrentGroupsByUser(userId, MemberStatus.MEMBER).stream().map(g -> groupMapper.toDTO(g, String.valueOf(userId), messageRepository)).toList();
     }
 
-    public List<JoinGroupRequestDTO> getCurrentLearnersRequests(Authentication connectedUser) {
-        String learnerId = connectedUser.getName();
+    public List<JoinGroupRequestDTO> getCurrentUsersRequests(Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
 
-        return learnerGroupRepository.findPendingRequestsForCurrentLearner(learnerId, MemberStatus.PENDING);
+        return userGroupRepository.findPendingRequestsForCurrentUser(userId, MemberStatus.PENDING);
     }
 
-    public List<JoinGroupRequestDTO> getOthersRequests(Authentication connectedUser) {
-        String learnerId = connectedUser.getName();
+    public List<JoinGroupRequestDTO> getOthersRequests(Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
 
-        return learnerGroupRepository.findPendingRequestsForGroupsAdministeredBy(learnerId, MemberStatus.PENDING);
+        return userGroupRepository.findPendingRequestsForGroupsAdministeredBy(userId, MemberStatus.PENDING);
     }
 
     public JoinGroupRequestDTO getRequestById(Long requestId) {
-        LearnerGroup learnerGroup = learnerGroupRepository.findById(requestId).orElseThrow(() -> new EntityNotFoundException("LearnerGroup not found with id " + requestId));
+        UserGroup userGroup = userGroupRepository.findById(requestId).orElseThrow(() -> new EntityNotFoundException("UserGroup not found with id " + requestId));
 
         return JoinGroupRequestDTO.builder()
                 .requestId(requestId)
-                .groupName(learnerGroup.getGroup().getName())
-                .requestLearnerUsername(learnerGroup.getLearner().getUsername())
+                .groupName(userGroup.getGroup().getName())
+                .groupIconPath(userGroup.getGroup().getIconPath())
+                .requestUserUsername(userGroup.getUser().getUsername())
+                .requestUserProfilePicturePath(userGroup.getUser().getProfilePicturePath())
                 .build();
     }
 
     public GroupDTO getGroupById(Long groupId, Authentication connectionUser) {
         Group group = groupRepository.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
-        String learnerId = connectionUser.getName();
-        Learner learner = learnerRepository.findById(learnerId).orElseThrow(() -> new EntityNotFoundException("Learner not found with id " + learnerId));
+        String userId = (String) connectionUser.getPrincipal();
+        Profile user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
 
-        return groupMapper.toDTO(group, learner.getUsername(), messageRepository);
+        return groupMapper.toDTO(group, user.getUsername(), messageRepository);
     }
 
-    public List<GroupDTO> getCommonGroups(String username, Authentication connectedUser) {
-        String learnerBId = connectedUser.getName();
-        Learner learnerA = learnerRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Learner not found with username " + username));
-        Learner learnerB = learnerRepository.findById(learnerBId).orElseThrow(() -> new EntityNotFoundException("Learner not found with id " + learnerBId));
+    public List<GroupDTO> getCommonGroups(String username, Authentication authentication) {
+        UUID userBId = (UUID) authentication.getPrincipal();
+        Profile userA = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("User not found with username " + username));
+        Profile userB = userRepository.findById(userBId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userBId));
 
-        return groupRepository.findCommonGroups(learnerA.getId(), learnerB.getId(), MemberStatus.MEMBER)
+        return groupRepository.findCommonGroups(userA.getId(), userB.getId(), MemberStatus.MEMBER)
                 .stream()
-                .map(g -> groupMapper.toDTO(g, learnerA.getUsername(), messageRepository))
+                .map(g -> groupMapper.toDTO(g, userA.getUsername(), messageRepository))
                 .toList();
     }
 
     @Transactional
-    public JoinGroupRequestDTO askToJoinGroup(Authentication connectedUser, Long groupId) throws MessagingException, UnsupportedEncodingException {
-        String learnerId = connectedUser.getName();
+    public JoinGroupRequestDTO askToJoinGroup(Authentication authentication, Long groupId) throws MessagingException, UnsupportedEncodingException {
+        UUID userId = (UUID) authentication.getPrincipal();
 
         Group group = groupRepository.findById(groupId).orElseThrow(EntityNotFoundException::new);
-        Learner learner = learnerRepository.findById(learnerId).orElseThrow(EntityNotFoundException::new);
-        Learner groupAdmin = group.getAdmin();
+        Profile user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
+        Profile groupAdmin = group.getAdmin();
 
-        LearnerGroup learnerGroup = LearnerGroup.builder()
+        UserGroup userGroup = UserGroup.builder()
                 .isAdmin(false)
                 .memberStatus(MemberStatus.PENDING)
-                .learner(learner)
+                .user(user)
                 .group(group)
                 .build();
 
-        learnerGroupRepository.save(learnerGroup);
+        userGroupRepository.save(userGroup);
 
         // notify the group admin that someone has requested to join your group
         NotificationDTO notificationDTO = NotificationDTO.builder()
@@ -128,12 +130,12 @@ public class GroupService {
                 .groupId(group.getId())
                 .iconPath(group.getIconPath())
                 .actionType(ActionType.NEW_REQUEST)
-                .requestId(learnerGroup.getId())
+                .requestId(userGroup.getId())
                 .build();
 
         String formattedGroupsUrl = frontendUrl + groupsUrl;
 
-        notificationService.sendNotificationToSingleLearner(groupAdmin.getId(), notificationDTO);
+        notificationService.sendNotificationToSingleUser(String.valueOf(groupAdmin.getId()), notificationDTO);
 
         emailService.sendApproveJoinGroupEmail(
                 groupAdmin.getEmail(),
@@ -146,23 +148,24 @@ public class GroupService {
 
 
         return JoinGroupRequestDTO.builder()
-                .requestId(learnerGroup.getId())
-                .requestLearnerUsername(learner.getUsername())
+                .requestId(userGroup.getId())
+                .requestUserUsername(user.getUsername())
+                .requestUserProfilePicturePath(user.getProfilePicturePath())
                 .groupName(group.getName())
+                .groupIconPath(group.getIconPath())
                 .build();
     }
 
-
     @Transactional
-    public GroupDTO createGroup(NewGroupDTO newGroupDTO, MultipartFile icon, Authentication connectedUser) {
-        String learnerId = connectedUser.getName();
-        Learner learner = learnerRepository.findById(learnerId).orElseThrow(EntityNotFoundException::new);
-        Learner bot = learnerRepository.findById(botId).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
+    public GroupDTO createGroup(NewGroupDTO newGroupDTO, MultipartFile icon, Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        Profile user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
+        Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
 
         Group group = Group.builder()
                 .name(newGroupDTO.getName())
                 .about(newGroupDTO.getAbout())
-                .dominantClusterId(learner.getClusterId())
+                .dominantClusterId(user.getClusterId())
                 .clusterMemberRatio(1.0)
                 .build();
 
@@ -185,38 +188,38 @@ public class GroupService {
 
         groupRepository.save(group);
 
-        LearnerGroup learnerGroup = LearnerGroup.builder()
+        UserGroup userGroup = UserGroup.builder()
                 .group(group)
-                .learner(learner)
+                .user(user)
                 .memberStatus(MemberStatus.MEMBER)
                 .isAdmin(true)
                 .build();
 
-        learnerGroupRepository.save(learnerGroup);
+        userGroupRepository.save(userGroup);
 
         Message message = Message.builder()
                 .messageType(MessageType.NOTICE)
                 .senderUsername(bot.getUsername())
                 .senderProfilePicturePath(bot.getProfilePicturePath())
                 .group(group)
-                .content(learner.getUsername() + " created the group")
+                .content(user.getUsername() + " created the group")
                 .build();
 
         messageRepository.save(message);
 
         if (newGroupDTO.isIncludeBot()) {
-            LearnerGroup botLG = LearnerGroup.builder()
+            UserGroup botLG = UserGroup.builder()
                     .group(group)
-                    .learner(bot)
+                    .user(bot)
                     .memberStatus(MemberStatus.BOT)
                     .isAdmin(false)
                     .build();
 
-            learnerGroupRepository.save(botLG);
+            userGroupRepository.save(botLG);
         }
 
         group.setLastMessage(message);
-        return groupMapper.toDTO(group, learner.getUsername(), messageRepository);
+        return groupMapper.toDTO(group, user.getUsername(), messageRepository);
     }
 
     @Transactional
@@ -236,37 +239,37 @@ public class GroupService {
     @Transactional
     public void cancelJoinGroup(Long requestId) {
 
-        LearnerGroup learnerGroup = learnerGroupRepository.findById(requestId).orElseThrow(EntityNotFoundException::new);
+        UserGroup userGroup = userGroupRepository.findById(requestId).orElseThrow(EntityNotFoundException::new);
 
-        learnerGroup.setMemberStatus(MemberStatus.CANCELED);
+        userGroup.setMemberStatus(MemberStatus.CANCELED);
 
-        Learner requestLearner = learnerGroup.getLearner();
-        Group group = learnerGroup.getGroup();
-        Learner groupAdmin = group.getAdmin();
+        Profile requestUser = userGroup.getUser();
+        Group group = userGroup.getGroup();
+        Profile groupAdmin = group.getAdmin();
 
-        learnerGroupRepository.save(learnerGroup);
+        userGroupRepository.save(userGroup);
 
         // notify the admin that someone has canceled their request to jon the group
         NotificationDTO notificationDTO = NotificationDTO.builder()
                 .title("Request Canceled")
-                .content(requestLearner.getUsername() + " has canceled their request to join your group: " + learnerGroup.getGroup().getName())
+                .content(requestUser.getUsername() + " has canceled their request to join your group: " + userGroup.getGroup().getName())
                 .groupId(group.getId())
                 .iconPath(group.getIconPath())
                 .actionType(ActionType.REQUEST_CANCELED)
-                .requestId(learnerGroup.getId())
+                .requestId(userGroup.getId())
                 .build();
 
-        notificationService.sendNotificationToSingleLearner(groupAdmin.getId(), notificationDTO);
+        notificationService.sendNotificationToSingleUser(String.valueOf(groupAdmin.getId()), notificationDTO);
     }
 
     @Transactional
-    public void handleJoinGroupRequest(Authentication connectedUser, String action, Long requestId) throws MessagingException, UnsupportedEncodingException {
-        String adminId = connectedUser.getName();
-        LearnerGroup learnerGroup = learnerGroupRepository.findById(requestId).orElseThrow(() -> new EntityNotFoundException("Request not found with id " + requestId));
-        Learner learner = learnerGroup.getLearner();
-        Learner admin = learnerRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
-        Group group = learnerGroup.getGroup();
-        LearnerGroup adminGroup = learnerGroupRepository.findByLearnerAndGroup(admin, group).orElseThrow(EntityNotFoundException::new);
+    public void handleJoinGroupRequest(Authentication authentication, String action, Long requestId) throws MessagingException, UnsupportedEncodingException {
+        UUID adminId = (UUID) authentication.getPrincipal();
+        UserGroup userGroup = userGroupRepository.findById(requestId).orElseThrow(() -> new EntityNotFoundException("Request not found with id " + requestId));
+        Profile user = userGroup.getUser();
+        Profile admin = userRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
+        Group group = userGroup.getGroup();
+        UserGroup adminGroup = userGroupRepository.findByUserAndGroup(admin, group).orElseThrow(EntityNotFoundException::new);
 
         if (!adminGroup.isAdmin()) {
             throw new NotGroupAdminException(group.getName());
@@ -282,17 +285,16 @@ public class GroupService {
                 .title("Request Update")
                 .groupId(group.getId())
                 .iconPath(group.getIconPath())
-                .requestId(learnerGroup.getId())
+                .requestId(userGroup.getId())
                 .build();
 
         if (action.equals("ACCEPT")) {
-            learnerGroup.setMemberStatus(MemberStatus.MEMBER);
-
-            Learner bot = learnerRepository.findById(botId).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
+            userGroup.setMemberStatus(MemberStatus.MEMBER);
+            Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
             Message message = Message.builder()
                     .group(group)
                     .messageType(MessageType.NOTICE)
-                    .content(learner.getUsername() + " joined the group")
+                    .content(user.getUsername() + " joined the group")
                     .senderUsername(bot.getUsername())
                     .senderProfilePicturePath(bot.getProfilePicturePath())
                     .build();
@@ -307,75 +309,75 @@ public class GroupService {
             group.setLastMessage(message);
             groupRepository.save(group);
 
-            emailService.sendRequestAcceptedEmail(learner.getEmail(), "Join Group Request Accepted", learner.getUsername(), group.getName(), formatedGroupUrl, EmailTemplateName.REQUEST_ACCEPTED);
+            emailService.sendRequestAcceptedEmail(user.getEmail(), "Join Group Request Accepted", user.getUsername(), group.getName(), formatedGroupUrl, EmailTemplateName.REQUEST_ACCEPTED);
         } else if (action.equals("REJECT")) {
-            learnerGroup.setMemberStatus(MemberStatus.REJECTED);
+            userGroup.setMemberStatus(MemberStatus.REJECTED);
 
             notificationDTO.setContent("Your request to join the group " + group.getName() + " has been rejected");
             notificationDTO.setActionType(ActionType.REQUEST_REJECTED);
 
-            emailService.sendRequestRejectedEmail(learner.getEmail(), "Join Group Request Update", learner.getUsername(), group.getName(), formatedGroupUrl, EmailTemplateName.REQUEST_REJECTED);
+            emailService.sendRequestRejectedEmail(user.getEmail(), "Join Group Request Update", user.getUsername(), group.getName(), formatedGroupUrl, EmailTemplateName.REQUEST_REJECTED);
         }
 
-        learnerGroupRepository.save(learnerGroup);
-        notificationService.sendNotificationToSingleLearner(learner.getId(), notificationDTO);
+        userGroupRepository.save(userGroup);
+        notificationService.sendNotificationToSingleUser(String.valueOf(user.getId()), notificationDTO);
     }
 
-    public void assignNewAdmin(Authentication connectedUser, Long groupId, String newAdminLearnerId) {
-        String adminId = connectedUser.getName();
+    public void assignNewAdmin(Authentication authentication, Long groupId, String newAdminUserId) {
+        UUID adminId = (UUID) authentication.getPrincipal();
         Group group = groupRepository.findById(groupId).orElseThrow(EntityNotFoundException::new);
-        Learner currentAdmin = learnerRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
-        Learner newAdmin = learnerRepository.findById(newAdminLearnerId).orElseThrow(EntityNotFoundException::new);
+        Profile currentAdmin = userRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
+        Profile newAdmin = userRepository.findById(newAdminUserId).orElseThrow(EntityNotFoundException::new);
 
         if (currentAdmin.equals(newAdmin)) {
             throw new OperationNotPermittedException("You can't assign yourself as an admin");
         }
 
-        LearnerGroup currAdminLearnerGroup = learnerGroupRepository.findByLearnerAndGroup(currentAdmin, group).orElseThrow(EntityNotFoundException::new);
-        LearnerGroup newAdminLearnerGroup = learnerGroupRepository.findByLearnerAndGroup(newAdmin, group).orElseThrow(EntityNotFoundException::new);
+        UserGroup currAdminUserGroup = userGroupRepository.findByUserAndGroup(currentAdmin, group).orElseThrow(EntityNotFoundException::new);
+        UserGroup newAdminUserGroup = userGroupRepository.findByUserAndGroup(newAdmin, group).orElseThrow(EntityNotFoundException::new);
 
-        if (!currAdminLearnerGroup.isAdmin()) {
+        if (!currAdminUserGroup.isAdmin()) {
             throw new NotGroupAdminException(group.getName());
         }
 
-        if (learnerGroupRepository.existsByLearnerAndGroupAndMemberStatus(newAdmin, group, MemberStatus.MEMBER)) {
+        if (userGroupRepository.existsByUserAndGroupAndMemberStatus(newAdmin, group, MemberStatus.MEMBER)) {
             throw new NotGroupMemberException(newAdmin.getUsername(), group.getName());
         }
 
-        currAdminLearnerGroup.setAdmin(false);
-        newAdminLearnerGroup.setAdmin(true);
+        currAdminUserGroup.setAdmin(false);
+        newAdminUserGroup.setAdmin(true);
 
-        learnerGroupRepository.save(currAdminLearnerGroup);
-        learnerGroupRepository.save(newAdminLearnerGroup);
+        userGroupRepository.save(currAdminUserGroup);
+        userGroupRepository.save(newAdminUserGroup);
     }
 
-    public void leaveGroup(Authentication connectedUser, Long groupId) {
+    public void leaveGroup(Authentication authentication, Long groupId) {
+        UUID userId = (UUID) authentication.getPrincipal();
         Group group = groupRepository.findById(groupId).orElseThrow(EntityNotFoundException::new);
-        String learnerId = connectedUser.getName();
-        Learner learner = learnerRepository.findById(learnerId).orElseThrow(EntityNotFoundException::new);
+        Profile user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
 
-        LearnerGroup learnerGroup = learnerGroupRepository.findByLearnerAndGroup(learner, group).orElseThrow(EntityNotFoundException::new);
+        UserGroup userGroup = userGroupRepository.findByUserAndGroup(user, group).orElseThrow(EntityNotFoundException::new);
 
-        if (learnerGroup.isAdmin() && group.getNoOfMembers() > 1) {
+        if (userGroup.isAdmin() && group.getNoOfMembers() > 1) {
             throw new OperationNotPermittedException("You can't leave this group yet because you are still an admin of this group");
         }
 
-        learnerGroup.setMemberStatus(MemberStatus.LEFT);
+        userGroup.setMemberStatus(MemberStatus.LEFT);
 
-        learnerGroupRepository.save(learnerGroup);
+        userGroupRepository.save(userGroup);
 
         updateGroupCluster(groupId);
     }
 
     private void updateGroupCluster(Long groupId) {
         Group group = groupRepository.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
-        List<LearnerGroup> activeMembers = group.getLearnerGroups().stream()
+        List<UserGroup> activeMembers = group.getUserGroups().stream()
                 .filter(lg -> lg.getMemberStatus() == MemberStatus.MEMBER)
                 .toList();
 
         // Calculate cluster distribution
         Map<Integer, Long> clusterCounts = activeMembers.stream()
-                .map(m -> m.getLearner().getClusterId())
+                .map(m -> m.getUser().getClusterId())
                 .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(
                         Function.identity(),
@@ -408,13 +410,13 @@ public class GroupService {
     public void updateGroupCluster() {
         groupRepository.findAll().forEach(group -> {
             // Get ACTIVE MEMBERS only
-            List<LearnerGroup> activeMembers = group.getLearnerGroups().stream()
+            List<UserGroup> activeMembers = group.getUserGroups().stream()
                     .filter(lg -> lg.getMemberStatus() == MemberStatus.MEMBER)
                     .toList();
 
             // Calculate cluster distribution
             Map<Integer, Long> clusterCounts = activeMembers.stream()
-                    .map(m -> m.getLearner().getClusterId())
+                    .map(m -> m.getUser().getClusterId())
                     .filter(Objects::nonNull)
                     .collect(Collectors.groupingBy(
                             Function.identity(),
@@ -454,7 +456,7 @@ public class GroupService {
         );
 
         groupRepository.findAll().forEach(group -> {
-            long interactionCount = group.getLearnerGroups().stream()
+            long interactionCount = group.getUserGroups().stream()
                     .filter(lg -> activeStatuses.contains(lg.getMemberStatus()))
                     .count();
 

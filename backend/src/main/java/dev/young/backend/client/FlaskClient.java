@@ -1,11 +1,12 @@
 package dev.young.backend.client;
 
-import dev.young.backend.dto.learning_preference.LearningPreferenceDTO;
+import dev.young.backend.dto.user.LearningPreferenceDTO;
 import dev.young.backend.dto.recommendation.ClusterPredictionResponse;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -21,7 +22,6 @@ public class FlaskClient {
     @Value("${application.ml-recommendation.service-token}")
     private String token;
 
-    private final WebClient.Builder flaskWebClientBuilder;
     private WebClient authClient;
     private WebClient unauthClient;
 
@@ -80,12 +80,12 @@ public class FlaskClient {
     // Initialize once after Spring injects values
     @PostConstruct
     private void initClients() {
-        this.authClient = flaskWebClientBuilder
+        this.authClient = WebClient.builder()
                 .baseUrl(baseUrl)
-                .defaultHeader("Authorization", "Bearer " + token)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .build();
 
-        this.unauthClient = flaskWebClientBuilder
+        this.unauthClient = WebClient.builder()
                 .baseUrl(baseUrl)
                 .build();
     }

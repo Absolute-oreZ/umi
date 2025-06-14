@@ -21,6 +21,6 @@ public class LearningPreference extends BaseEntity {
     private Set<String> learningStyles = new HashSet<>();
 
     @OneToOne
-    @JoinColumn(name = "learner_id", nullable = false)
-    private Learner learner;
+    @JoinColumn(name = "user_id", nullable = false)
+    private Profile user;
 }

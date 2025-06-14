@@ -33,16 +33,12 @@ spring:
           writetimeout: 5000
 
 application:
-  keycloak:
-    server-url: http://localhost:9092
-    realm: umi
-    client-id: umi-cli
   file:
     upload:
       photos-output-path: ../frontend/public/uploads
   bot:
-    id: -9223372036854775808
-    username: BOT
+    id: ce8016e7-6405-41d6-979a-4617d8085c03
+    username: UMI-BOT
   ml-recommendation:
     base-url: http://localhost:5002
   gemini-ai:
