@@ -29,19 +29,16 @@ jobs:
         with:
           python-version: '3.10'
 
-      # test backend (with mock environment)
+      # Test backend (Spring Boot with test profile)
       - name: Test Backend
         env:
-          DATABASE_URL: jdbc:h2:mem:testdb
-          DATABASE_USERNAME: sa
-          DATABASE_PASSWORD: 
           SPRING_PROFILES_ACTIVE: test
         run: |
           cd backend
           chmod +x mvnw
-          ./mvnw test
+          ./mvnw test -e -X
 
-      # test frontend
+      # Test frontend
       - name: Test Frontend
         env:
           VITE_BACKEND_URL: http://localhost:8082/api/v1
@@ -54,7 +51,7 @@ jobs:
           npm ci
           npm run test
 
-      # test recommendation service
+      # Test recommendation service
       - name: Test Recommendation Service
         env:
           SERVICE_TOKEN: test-token
@@ -74,5 +71,5 @@ jobs:
       - name: Trigger Render Deployment
         run: |
           echo "✅ Tests passed! Render will auto-deploy from main branch"
-          # Optional: You can add webhook calls here if you set up deploy hooks
+          # Optional: Add a Render deploy hook if needed
           # curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
