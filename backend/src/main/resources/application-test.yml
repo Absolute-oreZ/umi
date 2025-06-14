@@ -41,6 +41,7 @@ application:
     base-url: http://localhost
     model: test-model
   supabase:
+    bucket: test-bucket
     url: http://localhost
     service-role:
       key: test-key
