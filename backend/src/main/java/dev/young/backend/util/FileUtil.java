@@ -71,9 +71,10 @@ public class FileUtil {
 
     public static FileType mapStringCategoryToFileType(String category) {
         return switch (category) {
-            case "image" -> IMAGE;
-            case "docs" -> DOCX;
-            case "pdf" -> PDF;
+            case "IMAGE" -> IMAGE;
+            case "DOCS" -> DOCX;
+            case "VIDEO" -> VIDEO;
+            case "PDF" -> PDF;
             default -> null;
         };
     }

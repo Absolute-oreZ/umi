@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Updated Notification</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f6f9; color: #333;">
+
+<div style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);">
+
+    <!-- Header -->
+    <div style="background-color: #FFA500; padding: 30px; color: white; text-align: center; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <h1 style="margin: 0; font-size: 28px;">Event Updated</h1>
+    </div>
+
+    <!-- Greeting and Summary -->
+    <div style="padding: 20px; text-align: center;">
+        <p style="font-weight: bold; font-size: 24px; background: linear-gradient(to right, #FFA500, #FF6B6B); -webkit-background-clip: text; background-clip: text; color: transparent;">
+            <span th:text="'Hello ' + ${username} + ','"></span>
+        </p>
+
+        <p style="font-size: 16px; line-height: 1.6; color: #555;"
+           th:text="'An event in your group (' + ${groupName} + ') has been updated by ' + ${eventCreator} + '.'"></p>
+
+        <p style="font-size: 16px; line-height: 1.6; color: #555;">Here are the latest event details:</p>
+
+        <!-- Updated Event Details -->
+        <div style="background-color: #f9f9f9; padding: 20px; margin-top: 20px; border-radius: 6px; text-align: left; font-size: 15px; color: #444; line-height: 1.6;">
+            <p><strong>Title:</strong> <span th:text="${eventTitle}"></span></p>
+
+            <p><strong>Updated by:</strong> <span th:text="${eventCreator}"></span></p>
+
+            <p th:if="${startDate != null}">
+                <strong>Starts:</strong> <span th:text="${startDate}"></span>
+            </p>
+
+            <p th:if="${endDate != null}">
+                <strong>Ends:</strong> <span th:text="${endDate}"></span>
+            </p>
+
+            <p th:if="${eventLink != null}">
+                <strong>Event Link:</strong>
+                <a th:href="${eventLink}" th:text="${eventLink}" target="_blank"
+                   style="color: #0078d4; text-decoration: none;"></a>
+            </p>
+        </div>
+
+        <!-- Reminder Message -->
+        <p th:if="${remindBefore != null}" style="font-size: 15px; color: #444; margin-top: 20px;">
+            Don't worry! You'll still be reminded <span th:text="${remindBefore}"></span> minutes before the event
+            starts.
+        </p>
+
+        <!-- Change Log Section -->
+        <div th:if="${changes != null}"
+             style="background-color: #fff3cd; padding: 20px; border-radius: 6px; margin-top: 30px; font-size: 15px; color: #856404;">
+            <p style="font-weight: bold; margin-bottom: 10px;">What's Changed:</p>
+            <ul style="padding-left: 20px;">
+                <li th:each="entry : ${#maps.entries(changes)}">
+                    <strong th:text="${entry.key} + ':'"></strong> <span th:text="${entry.value}"></span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- CTA Button -->
+        <a th:href="${eventLink}" th:if="${eventLink != null}" target="_blank"
+           style="display:inline-block; background-color:#0078d4; color:white; padding:15px 30px; font-size:16px; text-decoration:none; border-radius:5px; margin-top: 20px;">
+            View Updated Event
+        </a>
+    </div>
+
+    <!-- Footer -->
+    <div style="display: flex; gap: 20px; background-color: #f4f6f9; padding: 20px; text-align: left; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+        <img src="cid:umiBot" alt="UMI Bot" style="width: 50px; border-radius: 50%; margin-bottom: 10px;">
+        <div>
+            <p style="font-size: 14px; color: #777; margin: 5px 0;">If you weren’t expecting this update, you can safely
+                ignore this email.</p>
+            <p style="font-size: 14px; color: #777; margin: 5px 0;">&copy; 2025 UMI. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

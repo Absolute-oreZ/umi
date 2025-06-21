@@ -15,6 +15,7 @@ import GroupHeader from "../../../components/group/GroupHeader";
 import InputBar from "../../../components/group/InputBar";
 import SearchMessageBar from "../../../components/group/SearchMessageBar";
 import { MessageListSkeleton } from "../../../skeletons";
+import EventContainer from "../../../components/events/EventContainer";
 
 const Groups = () => {
   const { user, isFetchingUserData } = useAuth();
@@ -30,7 +31,6 @@ const Groups = () => {
     setOthersRequests,
     subscribeToGroup,
     handleMessageSent,
-    recommendedGroups,
     isFetchingGroups,
     isFetchingMessages,
     handleSelectGroup,
@@ -40,12 +40,15 @@ const Groups = () => {
   const [isProfileCardVisible, setIsProfileCardVisible] = useState(false);
   const [isGroupCardVisible, setIsGroupCardVisible] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [openEventContainer, setOpenEventContainer] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [matchedMessageIndexes, setMatchedMessageIndexes] = useState([]);
+  const [recommendedGroups, setrecommendedGroups] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [anotherProfile, setAnotherProfile] = useState(null);
   const [commonGroups, setCommonGroups] = useState(null);
-  const [loadedMediaCount, setLoadedMediaCount] = useState(0); // Track loaded media
+  const [loadedMediaCount, setLoadedMediaCount] = useState(0);
 
   const messagesEndRef = useRef(null);
   const messageRefs = useRef([]);
@@ -58,6 +61,14 @@ const Groups = () => {
     setSearchQuery("");
     setMatchedMessageIndexes([]);
     setCurrentMatchIndex(0);
+  };
+
+  const handleRemoveEventContainer = () => {
+    setOpenEventContainer(false);
+  };
+
+  const handleOpenEventContainer = () => {
+    setOpenEventContainer(true);
   };
 
   const scrollToBottom = () => {
@@ -100,6 +111,30 @@ const Groups = () => {
     }
   }, [currentMatchIndex, matchedMessageIndexes]);
 
+  const fetchRecommendedgroups = async () => {
+    try {
+      const response = await customFetch("/recommendations");
+      const data = await response.json();
+      console.log("upcoming events in this group: ", data);
+      setrecommendedGroups(data);
+    } catch (error) {
+      console.error("Error creating group:", error);
+    }
+  };
+
+  const fetchUpcomingEventsByGroup = async () => {
+    try {
+      console.log(selectedGroup);
+      const response = await customFetch(
+        `/events/upcoming/${selectedGroup.id}`
+      );
+      const data = await response.json();
+      setUpcomingEvents(data);
+    } catch (error) {
+      console.error("Error fetching events by group:", error);
+    }
+  };
+
   const handleNextMatch = () => {
     if (matchedMessageIndexes.length === 0) return;
     setCurrentMatchIndex((prev) => (prev + 1) % matchedMessageIndexes.length);
@@ -125,6 +160,19 @@ const Groups = () => {
       setCurrentGroups((prev) => [...prev, data]);
     } catch (error) {
       console.error("Error creating group:", error);
+    }
+  };
+
+  const handleCreateNewEvent = async (newEventData) => {
+    newEventData.groupId = selectedGroup.id;
+
+    try {
+      await customFetch("/events/new", {
+        method: "POST",
+        body: JSON.stringify(newEventData),
+      });
+    } catch (error) {
+      console.error("Error creaing event: ", error);
     }
   };
 
@@ -226,13 +274,23 @@ const Groups = () => {
         />
       )}
 
+      <EventContainer
+        upcomingEvents={upcomingEvents}
+        openEventContainer={openEventContainer}
+        closeEventContainer={handleRemoveEventContainer}
+        handleCreateNewEvent={handleCreateNewEvent}
+      />
+
       <div className="flex flex-col gap-4 border-r-1 border-black w-2/7 min-h-screen p-4">
         <div className="flex justify-between">
           <h3 className="text-lg">Groups</h3>
           <div className="flex items-center gap-3">
             <button
               className={"relative group hover:bg-gray-500 p-1 rounded-md"}
-              onClick={toggleForm}
+              onClick={() => {
+                fetchRecommendedgroups();
+                toggleForm();
+              }}
               disabled={currentGroups.length >= 3}
             >
               <MdOutlineAdd className="text-xl" />
@@ -334,7 +392,7 @@ const Groups = () => {
                     <div>
                       <button
                         className="font-medium text-rose-400 hover:underline hover:cursor-pointer"
-                        onClick={() => handleShowProfile(r.requesttUsersername)}
+                        onClick={() => handleShowProfile(r.requestUserUsername)}
                       >
                         {r.requestUserUsername}
                       </button>
@@ -413,6 +471,8 @@ const Groups = () => {
             members={selectedGroup.members}
             handleHeaderClicked={toggleGroupCard}
             handleSearchButtonClicked={toggleSearchBar}
+            handleOpenEventContainer={handleOpenEventContainer}
+            fetchUpcomingEventsByGroup={fetchUpcomingEventsByGroup}
           />
 
           {isFetchingMessages ? (

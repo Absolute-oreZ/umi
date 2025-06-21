@@ -23,7 +23,6 @@ const WebSocketProvider = ({ children }) => {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [isFetchingMessages, setIsFetchingMessages] = useState(false);
   const [isFetchingGroups, setisFetchingGroups] = useState(false);
-  const [recommendedGroups, setrecommendedGroups] = useState([]);
   const [othersRequests, setOthersRequests] = useState([]);
   const [currentUsersRequests, setCurrentUsersRequests] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -170,9 +169,6 @@ const WebSocketProvider = ({ children }) => {
         setSubscriptions((prev) => [...prev, subscription]);
 
         setCurrentUsersRequests((prev) =>
-          prev.filter((request) => request.requestId !== message.requestId)
-        );
-        setrecommendedGroups((prev) =>
           prev.filter((request) => request.requestId !== message.requestId)
         );
       } else if (actionType === "REQUEST_REJECTED") {
@@ -344,13 +340,11 @@ const WebSocketProvider = ({ children }) => {
       const fetchedGroups = await fetchGroups();
       const {
         currentGroups = [],
-        recommendedGroups = [],
         currentUsersRequests = [],
         othersRequests = [],
       } = fetchedGroups;
 
       setCurrentGroups(currentGroups);
-      setrecommendedGroups(recommendedGroups);
       setCurrentUsersRequests(currentUsersRequests);
       setOthersRequests(othersRequests);
 
@@ -416,7 +410,6 @@ const WebSocketProvider = ({ children }) => {
         selectedGroup,
         othersRequests,
         currentUsersRequests,
-        recommendedGroups,
         messages,
         currentGroups,
         subscriptions,

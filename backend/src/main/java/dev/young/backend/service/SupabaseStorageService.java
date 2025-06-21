@@ -43,10 +43,11 @@ public class SupabaseStorageService {
 
     public String uploadSharedResource(
             @Nonnull MultipartFile file,
-            @Nonnull String category
+            @Nonnull String category,
+            String fileName
     ) {
         String fileExtension = FileUtil.getFileExtension(file);
-        String originalName = FileUtil.getOriginalNameWithoutExtension(file);
+        String originalName = fileName == null ? FileUtil.getOriginalNameWithoutExtension(file) : fileName;
         String uploadPath = "shared/" + category;
         String objectPath = uploadPath + "/" + originalName + "." + fileExtension;
 

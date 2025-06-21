@@ -1,4 +1,5 @@
 import { MdGroups3, MdOutlineSearch } from "react-icons/md";
+import { CiCloudMoon } from "react-icons/ci";
 import { formatImagePath } from "../../utils";
 
 const GroupHeader = ({
@@ -7,6 +8,8 @@ const GroupHeader = ({
   members,
   handleHeaderClicked,
   handleSearchButtonClicked,
+  handleOpenEventContainer,
+  fetchUpcomingEventsByGroup
 }) => {
   const formattedIconPath = iconPath ? formatImagePath(iconPath) : null;
 
@@ -38,18 +41,33 @@ const GroupHeader = ({
         </div>
       </div>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleSearchButtonClicked();
-        }}
-        className="relative hover:bg-gray-500 group rounded-md p-3"
-      >
-        <MdOutlineSearch />
-        <span className="absolute top-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform translate-y-1 transition-all duration-300 pointer-events-none z-20">
-          Search
-        </span>
-      </button>
+      <div className="flex gap-1">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            fetchUpcomingEventsByGroup();
+            handleOpenEventContainer();
+          }}
+          className="relative hover:bg-gray-500 group rounded-md p-3"
+        >
+          <CiCloudMoon />
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform translate-y-1 transition-all duration-300 pointer-events-none z-20">
+            Events
+          </span>
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSearchButtonClicked();
+          }}
+          className="relative hover:bg-gray-500 group rounded-md p-3"
+        >
+          <MdOutlineSearch />
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform translate-y-1 transition-all duration-300 pointer-events-none z-20">
+            Search
+          </span>
+        </button>
+      </div>
     </div>
   );
 };

@@ -22,7 +22,7 @@ public class SecurityConfig {
     private final ExpiredTokenFilter expiredTokenFilter;
     private final SupabaseJwtAuthenticationFilter supabaseJwtAuthenticationFilter;
 
-    private static final String[] WHITE_LIST_URL = {
+    public static final String[] WHITE_LIST_URL = {
             "/auth/**",
             "/v2/api-docs",
             "/v3/api-docs",
@@ -35,6 +35,9 @@ public class SecurityConfig {
             "/webjars/**",
             "/swagger-ui.html",
             "/ws/**",
+            "/ws",
+            "/actuator",
+            "/actuator/**"
     };
 
     @Bean

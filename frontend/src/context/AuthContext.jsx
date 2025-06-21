@@ -69,8 +69,12 @@ const AuthProvider = ({ children }) => {
   };
 
   const signInWithProvider = async (provider) => {
+    const siteUrl = import.meta.env.VITE_SITE_URL;
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
+      options: {
+        redirectTo: `${siteUrl}/me`,
+      },
     });
 
     if (error) {

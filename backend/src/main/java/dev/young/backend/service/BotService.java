@@ -61,7 +61,6 @@ public class BotService {
                     .messageType(MessageType.TEXT)
                     .group(userMessage.getGroup())
                     .senderUsername(bot.getUsername())
-                    .senderProfilePicturePath(bot.getProfilePicturePath())
                     .content(botResponse)
                     .build();
 
@@ -76,7 +75,7 @@ public class BotService {
                     .senderUsername(bot.getUsername())
                     .groupId(userMessage.getGroup().getId())
                     .iconPath(userMessage.getGroup().getIconPath())
-                    .messageDTO(messageMapper.toDTO(botReply))
+                    .messageDTO(messageMapper.toDTO(botReply,bot.getProfilePicturePath()))
                     .build();
 
             notificationService.sendNotificationToGroup(notificationDTO);
@@ -88,7 +87,6 @@ public class BotService {
                     .messageType(MessageType.TEXT)
                     .group(userMessage.getGroup())
                     .senderUsername(bot.getUsername())
-                    .senderProfilePicturePath(bot.getProfilePicturePath())
                     .content("@" + userMessage.getSenderUsername() + " I'm sorry, I encountered an error while processing your request. Please try again.")
                     .build();
 

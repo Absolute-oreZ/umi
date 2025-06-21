@@ -26,7 +26,7 @@ const MessageBubble = ({
 
   const [isMediaLoaded, setIsMediaLoaded] = useState(false);
 
-  const mentionRegex = /(@\w+)/g;
+  const mentionRegex = /(@[\w-]+)/g;
 
   const highlightMentions = (text) => {
     if (typeof text !== "string") {

@@ -26,8 +26,6 @@ public class Message extends BaseEntity {
 
     private String mediaPath;
 
-    private String senderProfilePicturePath;
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "group_id")
     private Group group;

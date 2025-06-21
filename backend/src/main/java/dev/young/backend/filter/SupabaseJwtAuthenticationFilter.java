@@ -1,5 +1,6 @@
 package dev.young.backend.filter;
 
+import dev.young.backend.config.SecurityConfig;
 import dev.young.backend.service.SupabaseJwtService;
 import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
@@ -27,7 +28,14 @@ public class SupabaseJwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
 
-        return path.startsWith("/ws/") || (path.equals("/ws"));
+        for (String url : SecurityConfig.WHITE_LIST_URL) {
+            if (path.startsWith(url)) {
+                return true;
+            }
+        }
+
+        return false;
+//        return path.startsWith("/ws/") || (path.equals("/ws"));
     }
 
     @Override

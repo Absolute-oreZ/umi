@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/groups")
@@ -33,7 +34,6 @@ public class GroupController {
     public ResponseEntity<GroupDashboardDTO> getAllGroupsData(Authentication authentication) {
         GroupDashboardDTO groupDashboardDTO = GroupDashboardDTO.builder()
                 .currentGroups(groupService.getCurrentGroupsByCurrentUser(authentication))
-                .recommendedGroups(recommendationService.getRecommendedGroups(authentication))
                 .currentUsersRequests(groupService.getCurrentUsersRequests(authentication))
                 .othersRequests(groupService.getOthersRequests(authentication))
                 .build();
@@ -98,7 +98,7 @@ public class GroupController {
     @PatchMapping("/assign-new-admin/{groupId}/{userId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void leaveGroup(Authentication authentication, @PathVariable Long
-            groupId, @PathVariable String userId) {
+            groupId, @PathVariable UUID userId) {
         groupService.assignNewAdmin(authentication, groupId, userId);
     }
 }

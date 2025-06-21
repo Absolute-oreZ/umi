@@ -44,6 +44,11 @@ public class Group extends BaseEntity {
     @Builder.Default
     private List<Message> messages = new ArrayList<>();
 
+    @OneToMany(mappedBy = "group")
+    @OrderBy("startDate DESC")
+    @Builder.Default
+    private List<Event> events = new ArrayList<>();
+
     @Transient
     public int getNoOfMembers() {
         return (int) userGroups.stream().filter(ug -> ug.getMemberStatus() == MemberStatus.MEMBER).count();

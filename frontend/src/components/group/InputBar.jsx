@@ -32,7 +32,7 @@ const InputBar = ({ groupId, members, handleMessageSent }) => {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [media, setMedia] = useState(null);
-  const [audioDuration, setAudioDuration] = useState(null); //
+  // const [audioDuration, setAudioDuration] = useState(null); //
   const [mediaUrl, setMediaUrl] = useState("");
   const [messageType, setMessageType] = useState("TEXT");
   const [isDiscarding, setIsDiscarding] = useState(false);

@@ -1,5 +1,6 @@
 package dev.young.backend.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
@@ -11,13 +12,17 @@ import java.util.Optional;
 
 @Configuration
 public class ApplicationAuditAwareConfig implements AuditorAware<String> {
+
+    @Value(("${application.bot.id}"))
+    private String botId;
+
     @Override
     public Optional<String> getCurrentAuditor() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
             // return a fixed default auditor for bot actions
-            return Optional.of("BOT");
+            return Optional.of(botId);
         }
 
         return Optional.ofNullable(authentication.getName());

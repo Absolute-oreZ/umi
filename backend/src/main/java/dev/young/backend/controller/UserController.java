@@ -2,7 +2,6 @@ package dev.young.backend.controller;
 
 import dev.young.backend.dto.user.ProfileUpdateDTO;
 import dev.young.backend.dto.user.UserDTO;
-import dev.young.backend.dto.user.LearningPreferenceDTO;
 import dev.young.backend.service.UserService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,24 +37,5 @@ public class UserController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void updateProfile(@Valid @ModelAttribute ProfileUpdateDTO profileUpdateDTO, @Parameter() @RequestParam(value = "profilePicture", required = false) MultipartFile profilePicture, Authentication authentication) {
         userService.updateProfile(profileUpdateDTO,profilePicture,authentication);
-    }
-
-    @PutMapping("/update-learning-preference")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public void updateLearningPreference(
-            @Valid @RequestBody LearningPreferenceDTO learningPreferenceDTO,
-            Authentication connectedUser
-    ) {
-        userService.updateLearningPreference(learningPreferenceDTO, connectedUser);
-    }
-
-    @PostMapping(value = "/upload-profile-picture", consumes = "multipart/form-data")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public void addLearningPreference(
-            @Parameter()
-            @RequestPart("profilePicture") MultipartFile profilePicture,
-            Authentication connectedUser
-    ) {
-        userService.uploadProfilePicture(profilePicture, connectedUser);
     }
 }

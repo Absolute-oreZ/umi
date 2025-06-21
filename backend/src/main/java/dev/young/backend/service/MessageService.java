@@ -51,7 +51,6 @@ public class MessageService {
 
         Message message = Message.builder()
                 .messageType(newMessageDTO.getMessageType())
-                .senderProfilePicturePath(user.getProfilePicturePath())
                 .senderUsername(user.getUsername())
                 .group(group)
                 .build();
@@ -77,13 +76,15 @@ public class MessageService {
         group.setLastMessage(message);
         messageRepository.save(message);
 
+        String notificationContent = media == null ? newMessageDTO.getContent() : media.getOriginalFilename();
+
         NotificationDTO notificationDTO = NotificationDTO.builder()
                 .title(group.getName())
-                .content(newMessageDTO.getContent())
+                .content(notificationContent)
                 .senderUsername(user.getUsername())
                 .groupId(group.getId())
                 .iconPath(group.getIconPath())
-                .messageDTO(messageMapper.toDTO(message))
+                .messageDTO(messageMapper.toDTO(message,user.getProfilePicturePath()))
                 .build();
 
         notificationService.sendNotificationToGroup(notificationDTO);
@@ -93,12 +94,15 @@ public class MessageService {
             botService.handleBotMention(message, bot);
         }
 
-        return messageMapper.toDTO(message);
+        return messageMapper.toDTO(message, user.getProfilePicturePath());
     }
 
     public List<MessageDTO> getMessagesByGroup(Long groupId) {
         Group group = groupRepository.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
-        return messageRepository.findMessagesByGroup(group).stream().map(messageMapper::toDTO).toList();
+        return messageRepository.findMessagesByGroup(group).stream().map(m -> {
+            Profile sender = userRepository.findById(UUID.fromString(m.getCreatedBy())).orElseThrow(() -> new EntityNotFoundException("Sender not found"));
+            return messageMapper.toDTO(m, sender.getProfilePicturePath());
+        }).toList();
     }
 
     @Transactional

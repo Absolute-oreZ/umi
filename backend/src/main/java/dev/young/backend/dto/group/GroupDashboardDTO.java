@@ -9,7 +9,6 @@ import java.util.List;
 @Builder
 public class GroupDashboardDTO {
     List<GroupDTO> currentGroups;
-    List<GroupDTO> recommendedGroups;
     List<JoinGroupRequestDTO> othersRequests;
     List<JoinGroupRequestDTO> currentUsersRequests;
 }

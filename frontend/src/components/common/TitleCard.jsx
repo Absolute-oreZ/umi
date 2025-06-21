@@ -1,18 +1,18 @@
 import { GiRamProfile } from "react-icons/gi";
 import { formatImagePath } from "../../utils";
 
-const TitleCard = ({ learner, group, isAdmin }) => {
+const TitleCard = ({ user, group, isAdmin }) => {
   const formattedPath =
-    learner && learner.profilePicturePath
-      ? formatImagePath(learner.profilePicturePath)
+    user && user.profilePicturePath
+      ? formatImagePath(user.profilePicturePath)
       : group && group.iconPath
       ? formatImagePath(group.iconPath)
       : null;
 
-  const name = learner ? learner.username : group.name;
+  const name = user ? user.username : group.name;
   return (
     <div>
-      {learner ? (
+      {user ? (
         <div className="flex gap-5 w-full">
           {formattedPath ? (
             <img
@@ -28,7 +28,9 @@ const TitleCard = ({ learner, group, isAdmin }) => {
 
           <div className="flex flex-col w-full gap-1">
             <p className="truncate text-sm">{name}</p>
-            {isAdmin ? <span className="text-gray-100 text-xs">Admin</span> : <span className="text-gray-100 text-xs">Member</span>}
+            <span className="text-gray-100 text-xs">
+              {isAdmin ? "Admin" : name === "UMI-BOT" ? "BOT" : "Member"}
+            </span>
           </div>
         </div>
       ) : (

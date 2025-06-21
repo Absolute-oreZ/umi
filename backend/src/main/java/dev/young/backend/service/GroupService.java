@@ -89,7 +89,7 @@ public class GroupService {
 
     public GroupDTO getGroupById(Long groupId, Authentication connectionUser) {
         Group group = groupRepository.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
-        String userId = (String) connectionUser.getPrincipal();
+        UUID userId = (UUID) connectionUser.getPrincipal();
         Profile user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
 
         return groupMapper.toDTO(group, user.getUsername(), messageRepository);
@@ -200,7 +200,6 @@ public class GroupService {
         Message message = Message.builder()
                 .messageType(MessageType.NOTICE)
                 .senderUsername(bot.getUsername())
-                .senderProfilePicturePath(bot.getProfilePicturePath())
                 .group(group)
                 .content(user.getUsername() + " created the group")
                 .build();
@@ -296,7 +295,6 @@ public class GroupService {
                     .messageType(MessageType.NOTICE)
                     .content(user.getUsername() + " joined the group")
                     .senderUsername(bot.getUsername())
-                    .senderProfilePicturePath(bot.getProfilePicturePath())
                     .build();
 
 
@@ -323,7 +321,7 @@ public class GroupService {
         notificationService.sendNotificationToSingleUser(String.valueOf(user.getId()), notificationDTO);
     }
 
-    public void assignNewAdmin(Authentication authentication, Long groupId, String newAdminUserId) {
+    public void assignNewAdmin(Authentication authentication, Long groupId, UUID newAdminUserId) {
         UUID adminId = (UUID) authentication.getPrincipal();
         Group group = groupRepository.findById(groupId).orElseThrow(EntityNotFoundException::new);
         Profile currentAdmin = userRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
