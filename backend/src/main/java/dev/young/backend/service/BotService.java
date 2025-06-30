@@ -3,7 +3,7 @@ package dev.young.backend.service;
 import dev.young.backend.client.GeminiClient;
 import dev.young.backend.dto.message.NotificationDTO;
 import dev.young.backend.entity.Message;
-import dev.young.backend.entity.Profile;
+import dev.young.backend.entity.User;
 import dev.young.backend.enums.MessageType;
 import dev.young.backend.mapper.MessageMapper;
 import dev.young.backend.repository.GroupRepository;
@@ -34,7 +34,7 @@ public class BotService {
     private final NotificationService notificationService;
 
     @Async
-    public void handleBotMention(Message userMessage, Profile bot) {
+    public void handleBotMention(Message userMessage, User bot) {
         // extract the actual question from the message
         String userQuestion = extractQuestionFromMessage(userMessage.getContent(), bot.getUsername());
 

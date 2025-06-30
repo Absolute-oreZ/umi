@@ -1,34 +1,46 @@
 package dev.young.backend.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Setter
 @Getter
+@Setter
+@Entity
+@ToString
 @SuperBuilder
-@MappedSuperclass
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
-public class BaseEntity {
+@Table(name = "_subscription")
+public class Subscription {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long Id;
+    private String id;
+
+    @Column(nullable = false)
+    private String plan;
+
+    @OneToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Column(nullable = false)
+    private String tier;
+
+    @Column(nullable = false)
+    private String status;
+
+    private Long currentPeriodStart;
+    private Long currentPeriodEnd;
 
     @CreatedDate
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
     @LastModifiedDate
@@ -36,7 +48,7 @@ public class BaseEntity {
     private LocalDateTime lastModifiedDate;
 
     @CreatedBy
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private UUID createdBy;
 
     @LastModifiedBy

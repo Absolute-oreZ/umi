@@ -23,7 +23,7 @@ public class UserGroup extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private Profile user;
+    private User user;
 
     @ManyToOne
     @JoinColumn(name = "group_id")

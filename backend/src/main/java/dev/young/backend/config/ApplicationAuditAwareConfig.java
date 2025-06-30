@@ -9,27 +9,28 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Configuration
-public class ApplicationAuditAwareConfig implements AuditorAware<String> {
+public class ApplicationAuditAwareConfig implements AuditorAware<UUID> {
 
     @Value(("${application.bot.id}"))
     private String botId;
 
     @Override
-    public Optional<String> getCurrentAuditor() {
+    public Optional<UUID> getCurrentAuditor() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
             // return a fixed default auditor for bot actions
-            return Optional.of(botId);
+            return Optional.of(UUID.fromString(botId));
         }
 
-        return Optional.ofNullable(authentication.getName());
+        return Optional.ofNullable((UUID) authentication.getPrincipal());
     }
 
     @Bean
-    public AuditorAware<String> auditorAware(){
+    public AuditorAware<UUID> auditorAware(){
         return new ApplicationAuditAwareConfig();
     }
 }

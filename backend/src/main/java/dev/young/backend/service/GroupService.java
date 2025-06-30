@@ -9,7 +9,7 @@ import dev.young.backend.dto.group.JoinGroupRequestDTO;
 import dev.young.backend.dto.group.NewGroupDTO;
 import dev.young.backend.dto.message.NotificationDTO;
 import dev.young.backend.entity.Group;
-import dev.young.backend.entity.Profile;
+import dev.young.backend.entity.User;
 import dev.young.backend.entity.UserGroup;
 import dev.young.backend.entity.Message;
 import dev.young.backend.enums.*;
@@ -60,7 +60,7 @@ public class GroupService {
             throw new EntityNotFoundException("User not found with id " + userId);
         }
 
-        return userGroupRepository.findCurrentGroupsByUser(userId, MemberStatus.MEMBER).stream().map(g -> groupMapper.toDTO(g, String.valueOf(userId), messageRepository)).toList();
+        return userGroupRepository.findCurrentGroupsByUser(userId, MemberStatus.MEMBER).stream().map(g -> groupMapper.toDTO(g, String.valueOf(userId), messageRepository)).sorted().toList();
     }
 
     public List<JoinGroupRequestDTO> getCurrentUsersRequests(Authentication authentication) {
@@ -90,15 +90,15 @@ public class GroupService {
     public GroupDTO getGroupById(Long groupId, Authentication connectionUser) {
         Group group = groupRepository.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
         UUID userId = (UUID) connectionUser.getPrincipal();
-        Profile user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
 
         return groupMapper.toDTO(group, user.getUsername(), messageRepository);
     }
 
     public List<GroupDTO> getCommonGroups(String username, Authentication authentication) {
         UUID userBId = (UUID) authentication.getPrincipal();
-        Profile userA = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("User not found with username " + username));
-        Profile userB = userRepository.findById(userBId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userBId));
+        User userA = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("User not found with username " + username));
+        User userB = userRepository.findById(userBId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userBId));
 
         return groupRepository.findCommonGroups(userA.getId(), userB.getId(), MemberStatus.MEMBER)
                 .stream()
@@ -111,8 +111,8 @@ public class GroupService {
         UUID userId = (UUID) authentication.getPrincipal();
 
         Group group = groupRepository.findById(groupId).orElseThrow(EntityNotFoundException::new);
-        Profile user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
-        Profile groupAdmin = group.getAdmin();
+        User user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
+        User groupAdmin = group.getAdmin();
 
         UserGroup userGroup = UserGroup.builder()
                 .isAdmin(false)
@@ -159,8 +159,8 @@ public class GroupService {
     @Transactional
     public GroupDTO createGroup(NewGroupDTO newGroupDTO, MultipartFile icon, Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
-        Profile user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
-        Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
+        User user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
+        User bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
 
         Group group = Group.builder()
                 .name(newGroupDTO.getName())
@@ -242,9 +242,9 @@ public class GroupService {
 
         userGroup.setMemberStatus(MemberStatus.CANCELED);
 
-        Profile requestUser = userGroup.getUser();
+        User requestUser = userGroup.getUser();
         Group group = userGroup.getGroup();
-        Profile groupAdmin = group.getAdmin();
+        User groupAdmin = group.getAdmin();
 
         userGroupRepository.save(userGroup);
 
@@ -265,8 +265,8 @@ public class GroupService {
     public void handleJoinGroupRequest(Authentication authentication, String action, Long requestId) throws MessagingException, UnsupportedEncodingException {
         UUID adminId = (UUID) authentication.getPrincipal();
         UserGroup userGroup = userGroupRepository.findById(requestId).orElseThrow(() -> new EntityNotFoundException("Request not found with id " + requestId));
-        Profile user = userGroup.getUser();
-        Profile admin = userRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
+        User user = userGroup.getUser();
+        User admin = userRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
         Group group = userGroup.getGroup();
         UserGroup adminGroup = userGroupRepository.findByUserAndGroup(admin, group).orElseThrow(EntityNotFoundException::new);
 
@@ -289,7 +289,7 @@ public class GroupService {
 
         if (action.equals("ACCEPT")) {
             userGroup.setMemberStatus(MemberStatus.MEMBER);
-            Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
+            User bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
             Message message = Message.builder()
                     .group(group)
                     .messageType(MessageType.NOTICE)
@@ -324,8 +324,8 @@ public class GroupService {
     public void assignNewAdmin(Authentication authentication, Long groupId, UUID newAdminUserId) {
         UUID adminId = (UUID) authentication.getPrincipal();
         Group group = groupRepository.findById(groupId).orElseThrow(EntityNotFoundException::new);
-        Profile currentAdmin = userRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
-        Profile newAdmin = userRepository.findById(newAdminUserId).orElseThrow(EntityNotFoundException::new);
+        User currentAdmin = userRepository.findById(adminId).orElseThrow(EntityNotFoundException::new);
+        User newAdmin = userRepository.findById(newAdminUserId).orElseThrow(EntityNotFoundException::new);
 
         if (currentAdmin.equals(newAdmin)) {
             throw new OperationNotPermittedException("You can't assign yourself as an admin");
@@ -352,7 +352,7 @@ public class GroupService {
     public void leaveGroup(Authentication authentication, Long groupId) {
         UUID userId = (UUID) authentication.getPrincipal();
         Group group = groupRepository.findById(groupId).orElseThrow(EntityNotFoundException::new);
-        Profile user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
+        User user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
 
         UserGroup userGroup = userGroupRepository.findByUserAndGroup(user, group).orElseThrow(EntityNotFoundException::new);
 

@@ -5,7 +5,7 @@ import dev.young.backend.dto.message.NewMessageDTO;
 import dev.young.backend.dto.message.NotificationDTO;
 import dev.young.backend.entity.Group;
 import dev.young.backend.entity.Message;
-import dev.young.backend.entity.Profile;
+import dev.young.backend.entity.User;
 import dev.young.backend.enums.FileType;
 import dev.young.backend.enums.MessageType;
 import dev.young.backend.mapper.MessageMapper;
@@ -46,8 +46,8 @@ public class MessageService {
     public MessageDTO saveMessage(NewMessageDTO newMessageDTO, MultipartFile media, Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
         Group group = groupRepository.findById(newMessageDTO.getGroupId()).orElseThrow(() -> new EntityNotFoundException("Group not found"));
-        Profile user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
-        Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("BOT NOT FOUND"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
+        User bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("BOT NOT FOUND"));
 
         Message message = Message.builder()
                 .messageType(newMessageDTO.getMessageType())
@@ -100,7 +100,7 @@ public class MessageService {
     public List<MessageDTO> getMessagesByGroup(Long groupId) {
         Group group = groupRepository.findById(groupId).orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
         return messageRepository.findMessagesByGroup(group).stream().map(m -> {
-            Profile sender = userRepository.findById(UUID.fromString(m.getCreatedBy())).orElseThrow(() -> new EntityNotFoundException("Sender not found"));
+            User sender = userRepository.findById(m.getCreatedBy()).orElseThrow(() -> new EntityNotFoundException("Sender not found"));
             return messageMapper.toDTO(m, sender.getProfilePicturePath());
         }).toList();
     }

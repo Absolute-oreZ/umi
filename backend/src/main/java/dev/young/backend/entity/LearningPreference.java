@@ -22,5 +22,5 @@ public class LearningPreference extends BaseEntity {
 
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private Profile user;
+    private User user;
 }

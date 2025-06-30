@@ -93,6 +93,13 @@
             <version>0.12.6</version>
         </dependency>
 
+        <!-- Stripe -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>29.2.0</version>
+        </dependency>
+
         <!-- mail -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

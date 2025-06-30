@@ -18,7 +18,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
                 SELECT COUNT(m)
                 FROM Message m
                 WHERE m.group.id = :groupId
-                  AND (SELECT u FROM Profile u WHERE u.username = :username) NOT MEMBER OF m.seenByUsers
+                  AND (SELECT u FROM User u WHERE u.username = :username) NOT MEMBER OF m.seenByUsers
             """)
     int countUnseenMessagesByGroupIdAndUsername(@Param("groupId") Long groupId, @Param("username") String username);
 

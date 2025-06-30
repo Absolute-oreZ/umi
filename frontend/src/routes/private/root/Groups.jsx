@@ -126,7 +126,7 @@ const Groups = () => {
     try {
       console.log(selectedGroup);
       const response = await customFetch(
-        `/events/upcoming/${selectedGroup.id}`
+        `/events/group/${selectedGroup.id}/upcoming`
       );
       const data = await response.json();
       setUpcomingEvents(data);

@@ -88,6 +88,7 @@ const AuthProvider = ({ children }) => {
     const { error } = await supabase.auth.signOut();
 
     if (!error) {
+      sessionStorage.clear();
       setUser(null);
       setSession(null);
       setAuthToken(null);

@@ -6,7 +6,7 @@ import dev.young.backend.dto.user.LearningPreferenceDTO;
 import dev.young.backend.dto.user.ProfileUpdateDTO;
 import dev.young.backend.dto.user.UserDTO;
 import dev.young.backend.entity.LearningPreference;
-import dev.young.backend.entity.Profile;
+import dev.young.backend.entity.User;
 import dev.young.backend.enums.FileType;
 import dev.young.backend.mapper.LearningPreferenceMapper;
 import dev.young.backend.mapper.UserMapper;
@@ -32,20 +32,21 @@ public class UserService {
 
     private final FlaskClient flaskClient;
     private final UserMapper userMapper;
+    private final StripeService stripeService;
+    //    private final FileService fileService;
     private final LearningPreferenceMapper learningPreferenceMapper;
-    private final FileService fileService;
     private final SupabaseStorageService supabaseStorageService;
     private final UserRepository userRepository;
     private final LearningPreferenceRepository learningPreferenceRepository;
 
     public UserDTO getProfile(Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
-        Profile user = userRepository.findById(userId).orElseThrow(() -> (new EntityNotFoundException("User not found with id " + userId)));
+        User user = userRepository.findById(userId).orElseThrow(() -> (new EntityNotFoundException("User not found with id " + userId)));
         return userMapper.toDTO(user);
     }
 
     public UserDTO getProfile(String username) {
-        Profile user = userRepository.findByUsername(username).orElseThrow(() -> (new EntityNotFoundException("User not found with username " + username)));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> (new EntityNotFoundException("User not found with username " + username)));
         return userMapper.toDTO(user);
     }
 
@@ -53,7 +54,7 @@ public class UserService {
     public void updateProfile(@Valid ProfileUpdateDTO profileUpdateDTO, MultipartFile profilePicture, Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
 
-        Profile user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
 
         // update Learning Preference (reuse existing if present)
@@ -85,6 +86,9 @@ public class UserService {
             if (userRepository.existsByUsername(newUsername)) {
                 throw new IllegalArgumentException("Username already taken");
             }
+            if (user.getStripeCustomerId() != null) {
+                stripeService.updateCustomerName(user.getStripeCustomerId(), newUsername);
+            }
             user.setUsername(newUsername);
         }
 
@@ -106,51 +110,6 @@ public class UserService {
 
         // save updated entities (only user because cascade = ALL on learningPreference)
         userRepository.save(user);
-    }
-
-
-    @Transactional
-    public void updateLearningPreference(@Valid LearningPreferenceDTO learningPreferenceDTO, Authentication authentication) {
-        UUID userId = (UUID) authentication.getPrincipal();
-        Profile user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
-
-        LearningPreference learningPreference = user.getLearningPreference() == null ? new LearningPreference() : user.getLearningPreference();
-
-        learningPreference.setUser(user);
-        learningPreference.setCountry(learningPreferenceDTO.getCountry());
-        learningPreference.setLearningStyles(learningPreferenceDTO.getLearningStyles());
-        learningPreference.setPersonality(learningPreferenceDTO.getPersonality());
-
-        try {
-            Integer clusterId = getClusterPrediction(learningPreferenceDTO);
-            user.setClusterId(clusterId);
-            user.setClusterUpdatedAt(LocalDateTime.now());
-        } catch (ClusterServiceException e) {
-            log.error("Cluster prediction failed, keeping previous cluster ID", e);
-        }
-
-        learningPreferenceRepository.save(learningPreference);
-    }
-
-    public void uploadProfilePicture(MultipartFile profilePicture, Authentication authentication) {
-        UUID userId = (UUID) authentication.getPrincipal();
-        Profile user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
-//        String profilePicturePath = fileService.saveFile(profilePicture, "users", user.getId(), FileType.IMAGE);
-        try {
-            String profilePicturePath = supabaseStorageService.uploadFile(
-                    profilePicture,
-                    "users",
-                    String.valueOf(user.getId()),
-                    FileType.IMAGE
-            );
-
-            user.setProfilePicturePath(profilePicturePath);
-            userRepository.save(user);
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw new RuntimeException("Error uploading profile picture", ex);
-        }
     }
 
     private Integer getClusterPrediction(LearningPreferenceDTO dto) {

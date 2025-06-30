@@ -2,7 +2,7 @@ package dev.young.backend.repository;
 
 import dev.young.backend.dto.group.JoinGroupRequestDTO;
 import dev.young.backend.entity.Group;
-import dev.young.backend.entity.Profile;
+import dev.young.backend.entity.User;
 import dev.young.backend.entity.UserGroup;
 import dev.young.backend.enums.MemberStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,15 +14,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UserGroupRepository extends JpaRepository<UserGroup, Long> {
-    Optional<UserGroup> findByUserAndGroup(Profile user, Group group);
+    Optional<UserGroup> findByUserAndGroup(User user, Group group);
 
     @Query("SELECT ug.user FROM UserGroup ug WHERE ug.group.id = :groupId AND ug.user.username != 'BOT' AND ug.memberStatus = :memberStatus")
-    List<Profile> findUsersByGroupId(@Param("groupId") Long groupId, @Param("memberStatus") MemberStatus memberStatus);
+    List<User> findUsersByGroupId(@Param("groupId") Long groupId, @Param("memberStatus") MemberStatus memberStatus);
 
     @Query("SELECT ug.user FROM UserGroup ug WHERE ug.group.id =:groupId AND ug.isAdmin = true")
-    Optional<Profile> findGroupAdminByGroup(@Param("groupId") Long groupId);
+    Optional<User> findGroupAdminByGroup(@Param("groupId") Long groupId);
 
-    boolean existsByUserAndGroupAndMemberStatus(Profile user, Group group, MemberStatus memberStatus);
+    boolean existsByUserAndGroupAndMemberStatus(User user, Group group, MemberStatus memberStatus);
 
     @Query(value = """
                 SELECT ug.group

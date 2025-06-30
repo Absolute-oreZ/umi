@@ -8,6 +8,7 @@ const EventContainer = ({
   upcomingEvents,
   handleCreateNewEvent,
 }) => {
+  const today = new Date().toISOString().slice(0, 16);
   const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [eventLink, setEventLink] = useState("");
@@ -54,8 +55,10 @@ const EventContainer = ({
           isLoading: false,
           theme: "dark",
           position: "top-right",
-          transition: Slide,
           autoClose: 3000,
+          closeOnClick: true,
+          closeButton: true,
+          transition: Slide,
         });
         return;
       }
@@ -79,9 +82,12 @@ const EventContainer = ({
         render: "Event created successfully!",
         type: "success",
         isLoading: false,
+        closeOnClick: true,
+        closeButton: true,
+        pauseOnHover: true,
         theme: "dark",
-        transition: Slide,
         autoClose: 3000,
+        transition: Slide,
       });
 
       resetForm();
@@ -92,6 +98,9 @@ const EventContainer = ({
         type: "error",
         isLoading: false,
         theme: "dark",
+        closeOnClick: true,
+        closeButton: true,
+        pauseOnHover: true,
         transition: Slide,
         autoClose: 3000,
       });
@@ -121,7 +130,10 @@ const EventContainer = ({
           ) : (
             <div className="flex flex-col w-full h-full justify-between">
               <p>No events yet, go ahead and create one</p>
-              <p className="font-bold text-xl text-rose-400 text-center">"Be the first to do something and you will pave the way for others." </p>
+              <p className="font-bold text-xl text-rose-400 text-center">
+                "Be the first to do something and you will pave the way for
+                others."{" "}
+              </p>
             </div>
           )}
         </div>
@@ -171,6 +183,7 @@ const EventContainer = ({
                   autoComplete="off"
                   type="datetime-local"
                   name="startDate"
+                  min={today}
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="w-51 p-2 border border-gray-300 rounded-md"
@@ -184,6 +197,7 @@ const EventContainer = ({
                   autoComplete="off"
                   type="datetime-local"
                   name="endDate"
+                  min={startDate}
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="w-51 p-2 border border-gray-300 rounded-md"

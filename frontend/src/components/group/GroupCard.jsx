@@ -24,7 +24,7 @@ const GroupCard = ({ group }) => {
       case "NOTICE":
         return (
           <p className="text-xs truncate max-w-50 text-gray-300">
-            {senderUsername && <span>{senderUsername} : </span>}
+            {(senderUsername && senderUsername !== "UMI-BOT") && <span>{senderUsername} : </span>}
             {content}
           </p>
         );

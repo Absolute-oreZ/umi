@@ -10,11 +10,11 @@ const navLinks = [
     icon: <MdGroups />,
     tooltip: "Groups",
   },
-  // {
-  //   to: "/events",
-  //   icon: <MdEvent />,
-  //   tooltip: "Events",
-  // },
+  {
+    to: "/events",
+    icon: <MdEvent />,
+    tooltip: "Events",
+  },
   {
     to: "/resources",
     icon: <FaFileArchive />,

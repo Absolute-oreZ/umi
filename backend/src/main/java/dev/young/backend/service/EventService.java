@@ -1,14 +1,10 @@
 package dev.young.backend.service;
 
-import dev.young.backend.dto.event.DeleteEventDTO;
 import dev.young.backend.dto.event.EditEventDTO;
 import dev.young.backend.dto.event.EventDTO;
 import dev.young.backend.dto.event.NewEventDTO;
 import dev.young.backend.dto.exception.NotGroupMemberException;
-import dev.young.backend.entity.Event;
-import dev.young.backend.entity.Group;
-import dev.young.backend.entity.Message;
-import dev.young.backend.entity.Profile;
+import dev.young.backend.entity.*;
 import dev.young.backend.enums.EmailTemplateName;
 import dev.young.backend.enums.MemberStatus;
 import dev.young.backend.enums.MessageType;
@@ -45,32 +41,37 @@ public class EventService {
     private final MessageRepository messageRepository;
     private final UserGroupRepository userGroupRepository;
 
-    public List<EventDTO> getEventsByGroup(Long groupId, Authentication authentication) {
+    public EventDTO getEventById(Long id) {
+        Event event = eventRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Event not Found with id " + id));
+        User eventCreator = userRepository.findById(event.getCreatedBy()).orElseThrow(() -> new EntityNotFoundException("user not found with id " + event.getCreatedBy()));
+        return eventMapper.toDTO(event, eventCreator.getUsername());
+    }
+
+
+    public List<EventDTO> getEventsByCurrentUser(Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
-        Profile user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
 
-        if (!userGroupRepository.existsByUserAndGroupAndMemberStatus(user, group, MemberStatus.MEMBER)) {
-            throw new NotGroupMemberException(user.getUsername(), group.getName());
+        List<Group> groups = userGroupRepository.findCurrentGroupsByUser(userId, MemberStatus.MEMBER);
+        List<Event> events = new ArrayList<>();
+
+        for (Group g : groups) {
+            events.addAll(getEventsByGroup(g.getId()));
         }
-
-        List<Event> events = eventRepository.findByGroupOrderByStartDateDesc(group);
 
         // collect all creator IDs
         Set<UUID> creatorIds = events.stream()
-                .map(event -> UUID.fromString(event.getCreatedBy()))
+                .map(BaseEntity::getCreatedBy)
                 .collect(Collectors.toSet());
 
         // fetch all creators in one query
-        Map<UUID, Profile> creators = userRepository.findAllById(creatorIds).stream()
-                .collect(Collectors.toMap(Profile::getId, Function.identity()));
+        Map<UUID, User> creators = userRepository.findAllById(creatorIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
 
         return events.stream()
+                .sorted(Comparator.comparing(Event::getStartDate))
                 .map(event -> {
-                    UUID creatorId = UUID.fromString(event.getCreatedBy());
-                    Profile creator = creators.get(creatorId);
+                    UUID creatorId = event.getCreatedBy();
+                    User creator = creators.get(creatorId);
                     if (creator == null) {
                         throw new EntityNotFoundException("User not found with id " + creatorId);
                     }
@@ -79,11 +80,18 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
+    private List<Event> getEventsByGroup(Long groupId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
+
+        return eventRepository.findByGroupOrderByStartDateDesc(group);
+    }
+
     public List<EventDTO> getUpcomingEventsByGroup(Long groupId, Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("Group not found with id " + groupId));
-        Profile user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
 
         if (!userGroupRepository.existsByUserAndGroupAndMemberStatus(user, group, MemberStatus.MEMBER)) {
@@ -94,18 +102,18 @@ public class EventService {
 
         // collect all creator IDs
         Set<UUID> creatorIds = events.stream()
-                .map(event -> UUID.fromString(event.getCreatedBy()))
+                .map(Event::getCreatedBy)
                 .collect(Collectors.toSet());
 
         // fetch all creators in one query
-        Map<UUID, Profile> creators = userRepository.findAllById(creatorIds).stream()
-                .collect(Collectors.toMap(Profile::getId, Function.identity()));
+        Map<UUID, User> creators = userRepository.findAllById(creatorIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
 
         return events.stream()
                 .filter(event -> event.getStartDate().isAfter(LocalDateTime.now()))
                 .map(event -> {
-                    UUID creatorId = UUID.fromString(event.getCreatedBy());
-                    Profile creator = creators.get(creatorId);
+                    UUID creatorId = event.getCreatedBy();
+                    User creator = creators.get(creatorId);
                     if (creator == null) {
                         throw new EntityNotFoundException("User not found with id " + creatorId);
                     }
@@ -117,9 +125,9 @@ public class EventService {
     @Transactional
     public void createEvent(NewEventDTO newEventDTO, Authentication authentication) throws MessagingException, UnsupportedEncodingException {
         UUID userId = (UUID) authentication.getPrincipal();
-        Profile user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("user not found with id " + userId));
-        Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
-        List<Profile> activeMembers = userGroupRepository.findUsersByGroupId(newEventDTO.getGroupId(), MemberStatus.MEMBER);
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("user not found with id " + userId));
+        User bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
+        List<User> activeMembers = userGroupRepository.findUsersByGroupId(newEventDTO.getGroupId(), MemberStatus.MEMBER);
 
 
         Event newEvent = eventMapper.toEntity(newEventDTO, groupRepository);
@@ -144,7 +152,7 @@ public class EventService {
         String formattedEndDate = newEvent.getEndDate() == null ? null : newEvent.getEndDate().format(formatter);
 
         if (newEvent.isNotifyMembers()) {
-            for (Profile activeMember : activeMembers) {
+            for (User activeMember : activeMembers) {
                 if (activeMember.equals(user)) continue;
                 emailService.notifyCreatedEvent(activeMember.getEmail(), "New Event Notification", activeMember.getUsername(), newEvent.getGroup().getName(), newEvent.getEventLink(), newEvent.getTitle(), formattedStartDate, formattedEndDate, user.getUsername(), newEventDTO.getRemindBeforeInMinutes(), EmailTemplateName.NEW_EVENT);
             }
@@ -152,14 +160,14 @@ public class EventService {
     }
 
     @Transactional
-    public void editEvent(EditEventDTO editEventDTO, Authentication authentication) throws MessagingException, UnsupportedEncodingException {
+    public void editEvent(Long id, EditEventDTO editEventDTO, Authentication authentication) throws MessagingException, UnsupportedEncodingException {
         UUID userId = (UUID) authentication.getPrincipal();
-        Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
-        Event event = eventRepository.findById(editEventDTO.getEventId()).orElseThrow(() -> new EntityNotFoundException("Event not found with id " + editEventDTO.getEventId()));
-        Profile user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("user not found with id " + userId));
-        Profile creator = userRepository.findById(UUID.fromString(event.getCreatedBy())).orElseThrow(() -> new EntityNotFoundException("Event creator not found"));
+        User bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
+        Event event = eventRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Event not found with id " + id));
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("user not found with id " + userId));
+        User creator = userRepository.findById(event.getCreatedBy()).orElseThrow(() -> new EntityNotFoundException("Event creator not found"));
         Group group = event.getGroup();
-        List<Profile> activeMembers = userGroupRepository.findUsersByGroupId(group.getId(), MemberStatus.MEMBER);
+        List<User> activeMembers = userGroupRepository.findUsersByGroupId(group.getId(), MemberStatus.MEMBER);
 
         if (!activeMembers.contains(user)) {
             throw new NotGroupMemberException(user.getUsername(), group.getName());
@@ -173,25 +181,27 @@ public class EventService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         String formattedNewStartDate = editEventDTO.getStartDate() == null ? null : editEventDTO.getStartDate().format(formatter);
         String formattedNewEndDate = editEventDTO.getEndDate() == null ? null : editEventDTO.getEndDate().format(formatter);
-        long minutes = ChronoUnit.MINUTES.between(event.getStartDate(), event.getEndDate());
 
         if (editEventDTO.getTitle() != null) {
             changes.put("Title", event.getTitle() + " -> " + editEventDTO.getTitle());
-            event.setTitle(event.getTitle());
+            event.setTitle(editEventDTO.getTitle());
         }
 
         if (editEventDTO.getEventLink() != null) {
             changes.put("Event Link", event.getEventLink() + " -> " + editEventDTO.getEventLink());
-            event.setEventLink(event.getEventLink());
+            event.setEventLink(editEventDTO.getEventLink());
         }
 
         if (editEventDTO.getStartDate() != null) {
             String formattedOldStartDate = event.getStartDate() == null ? null : event.getStartDate().format(formatter);
             String changeMessage = formattedOldStartDate == null ? "Event scheduled at " + formattedNewStartDate : formattedOldStartDate + " -> " + formattedNewStartDate;
-            LocalDateTime newRemindAt = editEventDTO.getStartDate().minusMinutes(minutes);
+            if (event.getStartDate() != null && event.getRemindAt() != null) {
+                long minutes = ChronoUnit.MINUTES.between(event.getStartDate(), event.getRemindAt());
+                LocalDateTime newRemindAt = editEventDTO.getStartDate().minusMinutes(minutes);
+                event.setRemindAt(newRemindAt);
+            }
             changes.put("Starts", changeMessage);
             event.setStartDate(editEventDTO.getStartDate());
-            event.setRemindAt(newRemindAt);
         }
 
         if (editEventDTO.getEndDate() != null) {
@@ -213,25 +223,24 @@ public class EventService {
         messageRepository.save(message);
 
         if (editEventDTO.isNotifyChanges()) {
-            for (Profile activeMember : activeMembers) {
+            for (User activeMember : activeMembers) {
                 if (user.equals(activeMember)) {
                     continue;
                 }
-
+                long minutes = event.getStartDate() != null && event.getRemindAt() != null ? ChronoUnit.MINUTES.between(event.getStartDate(), event.getRemindAt()) : null;
                 emailService.notifyEventChanges(activeMember.getEmail(), "Event Changes Update", activeMember.getUsername(), event.getGroup().getName(), event.getEventLink(), event.getTitle(), formattedNewStartDate, formattedNewEndDate, user.getUsername(), (int) minutes, changes, EmailTemplateName.EVENT_CHANGED);
             }
         }
-
     }
 
-    public void cancelEvent(DeleteEventDTO deleteEventDTO, Authentication authentication) throws MessagingException, UnsupportedEncodingException {
+    public void deleteEvent(Long eventId, boolean notifyDeletion, Authentication authentication) throws MessagingException, UnsupportedEncodingException {
         UUID userId = (UUID) authentication.getPrincipal();
-        Profile bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
-        Event event = eventRepository.findById(deleteEventDTO.getEventId()).orElseThrow(() -> new EntityNotFoundException("Event not found with id " + deleteEventDTO.getEventId()));
-        Profile user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("user not found with id " + userId));
-        Profile creator = userRepository.findById(UUID.fromString(event.getCreatedBy())).orElseThrow(() -> new EntityNotFoundException("Event creator not found"));
+        User bot = userRepository.findById(UUID.fromString(botId)).orElseThrow(() -> new EntityNotFoundException("Bot not found"));
+        Event event = eventRepository.findById(eventId).orElseThrow(() -> new EntityNotFoundException("Event not found with id " + eventId));
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("user not found with id " + userId));
+        User creator = userRepository.findById(event.getCreatedBy()).orElseThrow(() -> new EntityNotFoundException("Event creator not found"));
         Group group = event.getGroup();
-        List<Profile> activeMembers = userGroupRepository.findUsersByGroupId(group.getId(), MemberStatus.MEMBER);
+        List<User> activeMembers = userGroupRepository.findUsersByGroupId(group.getId(), MemberStatus.MEMBER);
 
         if (!activeMembers.contains(user)) {
             throw new NotGroupMemberException(user.getUsername(), group.getName());
@@ -252,8 +261,8 @@ public class EventService {
 
         messageRepository.save(message);
 
-        if (deleteEventDTO.isNotifyDeletion()) {
-            for (Profile activeMember : activeMembers) {
+        if (notifyDeletion) {
+            for (User activeMember : activeMembers) {
                 if (user.equals(activeMember)) {
                     continue;
                 }

@@ -19,10 +19,11 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-public class Profile {
+@Table(name = "_user")
+public class User {
 
     @Id
-    private UUID id; // keycloak User Id // Supabase auth.users.id (UUID)
+    private UUID id; // Supabase auth.users.id (UUID)
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -30,14 +31,18 @@ public class Profile {
     @Column(unique = true, nullable = false)
     private String username;
 
+    private String stripeCustomerId;
     private String profilePicturePath;
-    private boolean isAccountPremium;
     private Integer clusterId;
     private LocalDateTime clusterUpdatedAt;
     private LocalDateTime lastSeen;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private LearningPreference learningPreference;
+
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private Subscription subscription;
 
     @Builder.Default
     @OneToMany(mappedBy = "user")

@@ -1,6 +1,5 @@
 package dev.young.backend.controller;
 
-import dev.young.backend.dto.event.DeleteEventDTO;
 import dev.young.backend.dto.event.EditEventDTO;
 import dev.young.backend.dto.event.EventDTO;
 import dev.young.backend.dto.event.NewEventDTO;
@@ -23,12 +22,22 @@ public class EventController {
 
     private final EventService eventService;
 
-    @GetMapping("/{groupId}")
-    public ResponseEntity<List<EventDTO>> getEventsByGroup(@PathVariable Long groupId, Authentication authentication){
-        return ResponseEntity.ok(eventService.getEventsByGroup(groupId,authentication));
+    @GetMapping("/{id}")
+    public ResponseEntity<EventDTO> getEventById(@PathVariable Long id){
+        return ResponseEntity.ok(eventService.getEventById(id));
     }
 
-    @GetMapping("/upcoming/{groupId}")
+    @GetMapping("/current")
+    public ResponseEntity<List<EventDTO>> getEventsByCurrentUser(Authentication authentication){
+        return ResponseEntity.ok(eventService.getEventsByCurrentUser(authentication));
+    }
+
+//    @GetMapping("/group/{groupId}")
+//    public ResponseEntity<List<EventDTO>> getEventsByGroup(@PathVariable Long groupId){
+//        return ResponseEntity.ok(eventService.getEventsByGroup(groupId));
+//    }
+
+    @GetMapping("/group/{groupId}/upcoming")
     public ResponseEntity<List<EventDTO>> getUpcomingEventsByGroup(@PathVariable Long groupId, Authentication authentication){
         return ResponseEntity.ok(eventService.getUpcomingEventsByGroup(groupId,authentication));
     }
@@ -39,15 +48,15 @@ public class EventController {
         eventService.createEvent(newEventDTO,authentication);
     }
 
-    @PatchMapping("/edit")
+    @PatchMapping("/edit/{id}")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void updateEvent(@Valid @RequestBody EditEventDTO editEventDTO,Authentication authentication) throws MessagingException, UnsupportedEncodingException {
-        eventService.editEvent(editEventDTO,authentication);
+    public void updateEvent(@PathVariable Long id,@Valid @RequestBody EditEventDTO editEventDTO, Authentication authentication) throws MessagingException, UnsupportedEncodingException {
+        eventService.editEvent(id,editEventDTO,authentication);
     }
 
-    @DeleteMapping("/cancel")
+    @DeleteMapping("/delete/{id}")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void cancelEvent(@Valid @RequestBody DeleteEventDTO deleteEventDTO, Authentication authentication) throws MessagingException, UnsupportedEncodingException {
-        eventService.cancelEvent(deleteEventDTO,authentication);
+    public void deleteEvent(@PathVariable Long id, @RequestParam("notifyDeletion") boolean notifyDeletion, Authentication authentication) throws MessagingException, UnsupportedEncodingException {
+        eventService.deleteEvent(id,notifyDeletion,authentication);
     }
 }

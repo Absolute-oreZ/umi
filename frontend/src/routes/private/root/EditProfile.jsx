@@ -50,6 +50,8 @@ const EditProfile = () => {
     for (const [condition, message] of validations) {
       if (condition) {
         toast.update(toastId, {
+          closeOnClick: true,
+          closeButton: true,
           render: message,
           type: "error",
           isLoading: false,
@@ -89,6 +91,8 @@ const EditProfile = () => {
 
       toast.update(toastId, {
         render: "Profile updated successfully!",
+        closeOnClick: true,
+        closeButton: true,
         type: "success",
         isLoading: false,
         theme: "dark",
@@ -101,6 +105,8 @@ const EditProfile = () => {
       console.error("Error updating profile:", err);
       toast.update(toastId, {
         render: "Something went wrong while updating.",
+        closeOnClick: true,
+        closeButton: true,
         type: "error",
         isLoading: false,
         theme: "dark",

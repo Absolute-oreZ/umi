@@ -76,6 +76,7 @@ const ProfileCompletionLayout = () => {
     } catch (error) {
       toast.error("Please select a personality type.", {
         position: "bottom-right",
+        closeButton: true,
         autoClose: 3000,
         theme: "dark",
         transition: Slide,

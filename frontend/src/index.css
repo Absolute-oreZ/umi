@@ -129,6 +129,12 @@
     @apply bg-white/20 rounded-full;
   }
 
+  .animate-gradient {
+    background: linear-gradient(to right, #4a90e2, #a355b9, #ff6b6b);
+    background-size: 200% 200%;
+    animation: gradient 8s linear infinite;
+  }
+
   .bubbles-container {
     @apply relative overflow-hidden min-h-screen w-full;
     background: linear-gradient(to bottom, #4c6bff, #29259d);
@@ -383,6 +389,18 @@
   .no-scrollbar {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
 

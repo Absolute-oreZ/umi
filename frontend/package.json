@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.50.0",
     "@tailwindcss/vite": "^4.0.4",
     "emoji-mart": "^5.6.0",
+    "framer-motion": "^12.19.2",
     "frontend": "file:",
     "react": "^18.3.1",
     "react-audio-voice-recorder": "^2.2.0",

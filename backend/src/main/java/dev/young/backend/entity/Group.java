@@ -5,10 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Getter
 @Setter
@@ -55,16 +52,16 @@ public class Group extends BaseEntity {
     }
 
     @Transient
-    public List<Profile> getMembers() {
+    public List<User> getMembers() {
         return userGroups.stream()
                 .filter(ug -> ug.getMemberStatus() == MemberStatus.MEMBER || ug.getMemberStatus() == MemberStatus.BOT)
+                .sorted(Comparator.comparing(ug -> ug.getUser().getUsername(), String::compareToIgnoreCase))
                 .map(UserGroup::getUser)
                 .toList();
     }
 
-
     @Transient
-    public Profile getAdmin() {
+    public User getAdmin() {
         for (UserGroup ug : userGroups) {
             if (ug.isAdmin()) {
                 return ug.getUser();

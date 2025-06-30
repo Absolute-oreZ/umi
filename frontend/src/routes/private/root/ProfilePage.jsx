@@ -1,13 +1,18 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { CgProfile } from "react-icons/cg";
 import { useAuth } from "../../../context/AuthContext";
 import { ProfilePageSkeleton } from "../../../skeletons";
+import GradientText from "../../../components/common/GradientText";
 
 const ProfilePage = () => {
   const { user, loading, fetchingUserData } = useAuth();
 
   if (!user || loading || fetchingUserData) {
     return <ProfilePageSkeleton />;
+  }
+
+  if (!user.learningPreference || !user.username) {
+    return <Navigate to="/profile-completion" />;
   }
 
   const {
@@ -54,9 +59,10 @@ const ProfilePage = () => {
 
         <div className="col-span-2 space-y-8">
           <div className="rounded-lg p-6">
-            <h2 className="text-3xl mb-8 font-semibold text-start text-gradient">
+            <GradientText className="text-3xl mb-8 font-semibold text-start">Hello There, {username} Here</GradientText>
+            {/* <h2 className="text-3xl mb-8 font-semibold text-start text-gradient">
               Hello There, {username} Here
-            </h2>
+            </h2> */}
             <p className="text-base border-t-2 rounded-md border-cyan-500 py-3">
               Hello, I'm {username} from {country || "an unknown location"}! I
               enjoy learning through a combination of{" "}

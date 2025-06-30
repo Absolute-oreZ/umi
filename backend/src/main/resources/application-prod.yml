@@ -55,6 +55,15 @@ application:
       key: ${SUPABASE_SERVICE_KEY}
     jwt:
       secret: ${SUPABASE_JWT_SECRET}
+    stripe:
+      secret-key: ${STRIPE_SECRET_KEY}
+      client-id: ${CLIENT_ID}
+      webhook-secret: ${WEBHOOK_SECRET}
+      prices:
+        starter-monthly: price_1RejmbCRihhzEjrx1c5e4k1b
+        starter-yearly: price_1RejpfCRihhzEjrxnhjYzbHg
+        pro-monthly: price_1Rejr6CRihhzEjrxEPlprYeQ
+        pro-yearly: price_1Reju2CRihhzEjrxoYzod6BX
 
 frontend:
   url: ${FRONTEND_URL}

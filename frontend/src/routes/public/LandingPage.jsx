@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { testimonials, pricingOptions } from "../../constants";
+import CountUp from "../../components/common/CountUp";
 
 const planType = ["Pay Monthly", "Pay Yearly (save 25%)"];
 
@@ -174,7 +175,14 @@ const StatisticCard = ({ emoji, count, title }) => (
   <div className="flex items-center gap-3 text-xl w-64 justify-center text-slate-700">
     <span className="text-2xl">{emoji}</span>
     <div>
-      <p className="font-bold">{count}+</p>
+      <CountUp
+        from={0}
+        to={count}
+        separator=","
+        direction="up"
+        duration={1}
+        className="count-up-text"
+      />
       <p>{title}</p>
     </div>
   </div>

@@ -37,7 +37,7 @@ public class Message extends BaseEntity {
             joinColumns = @JoinColumn(name = "message_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
-    private Set<Profile> seenByUsers = new HashSet<>();
+    private Set<User> seenByUsers = new HashSet<>();
 
     @Transient
     public boolean isMessageFullySeen(){

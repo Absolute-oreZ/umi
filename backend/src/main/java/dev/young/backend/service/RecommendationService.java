@@ -2,7 +2,7 @@ package dev.young.backend.service;
 
 import dev.young.backend.dto.group.GroupDTO;
 import dev.young.backend.entity.Group;
-import dev.young.backend.entity.Profile;
+import dev.young.backend.entity.User;
 import dev.young.backend.enums.MemberStatus;
 import dev.young.backend.mapper.GroupMapper;
 import dev.young.backend.repository.GroupRepository;
@@ -38,7 +38,7 @@ public class RecommendationService {
     public List<GroupDTO> getRecommendedGroups(Authentication authentication) {
         UUID userId = (UUID) authentication.getPrincipal();
         try {
-            Profile user = userRepository.findById(userId)
+            User user = userRepository.findById(userId)
                     .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
             if (user.getClusterId() == null) {
@@ -56,7 +56,7 @@ public class RecommendationService {
         }
     }
 
-    private boolean meetsRecommendationCriteria(Group group, Profile user) {
+    private boolean meetsRecommendationCriteria(Group group, User user) {
         return group.getDominantClusterId() != null &&
                 !userGroupRepository.existsByUserAndGroupAndMemberStatus(user, group, MemberStatus.MEMBER);
     }

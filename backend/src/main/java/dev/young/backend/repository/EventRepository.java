@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface EventRepository extends JpaRepository<Event,Long> {
-    public List<Event> findByGroupOrderByStartDateDesc(Group group);
+    List<Event> findByGroupOrderByStartDateDesc(Group group);
 }

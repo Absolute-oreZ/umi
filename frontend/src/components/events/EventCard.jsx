@@ -10,7 +10,7 @@ const EventCard = ({ event }) => {
   const truncateClasses = "truncate block max-w-full";
 
   return (
-    <div className="flex flex-col p-3 gap-1.5 w-full bg-white text-gray-900 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 border border-teal-200 text-sm">
+    <div className="my-2 flex flex-col p-3 gap-1.5 w-full bg-white text-gray-900 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 border border-teal-200 text-sm">
       <h3
         className={`text-base font-semibold text-teal-700 ${truncateClasses}`}
       >

@@ -13,7 +13,7 @@ const processQueue = (error, token = null) => {
             prom.resolve(token);
         }
     });
-    failedQueue = []; // reset failed queue
+    failedQueue = [];
 }
 
 export const setAuthToken = (token) => {

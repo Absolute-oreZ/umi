@@ -5,6 +5,7 @@ import ResourceUploader from "../../../components/resource/ResourceUploader";
 import { getMediaTypeFromExtension, validateFileSize } from "../../../utils";
 import { useWebSocket } from "../../../context/WebSocketContext";
 import PaginationControl from "../../../components/common/PaginationControl";
+import { useSessionState } from "../../../hooks/useSessionState";
 
 const categories = [
   { label: "All", value: "" },
@@ -16,36 +17,35 @@ const categories = [
 
 const Resource = () => {
   const { currentGroups, handleMessageSent } = useWebSocket();
+  const [query, setQuery] = useSessionState("umi-query", "");
+  const [category, setCategory] = useSessionState("umi-category", "");
+  const [hasSearched, setHasSearched] = useSessionState(
+    "umi-hasSearched",
+    false
+  );
+  const [currentPage, setCurrentPage] = useSessionState("umi-currentPage", 0);
+
   const [resources, setResources] = useState([]);
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState();
 
   const [file, setFile] = useState(null);
   const [renameText, setRenameText] = useState("");
   const [uploadStatus, setUploadStatus] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState();
-
-  const fetchResources = async (searchQuery, searchCategory) => {
+  const fetchResources = async () => {
     try {
       const params = new URLSearchParams();
-      if (searchQuery) params.append("query", searchQuery);
-      if (searchCategory) params.append("category", searchCategory);
+      if (query) params.append("query", query);
+      if (category) params.append("category", category);
       params.append("page", currentPage);
 
       const response = await customFetch(
-        `/resources/query?${params.toString()}`,
-        {
-          method: "GET",
-        }
+        `/resources/query?${params.toString()}`
       );
       const data = await response.json();
 
-      console.log(data);
       setResources(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
@@ -55,31 +55,34 @@ const Resource = () => {
     }
   };
 
+  useEffect(() => {
+    if (hasSearched) fetchResources();
+  }, [category, currentPage]);
+
+  useEffect(() => {
+    if (hasSearched) fetchResources();
+  }, []);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    setHasSearched(true);
+    setCurrentPage(0);
+    fetchResources();
+  };
+
   const handleForwardResource = async (mediaUrl, groupId) => {
     const response = await fetch(mediaUrl);
     const blob = await response.blob();
     const fileName = mediaUrl.split("/").pop().split("?")[0] || "file";
     const media = new File([blob], fileName, { type: blob.type });
     const type = getMediaTypeFromExtension(media.name);
-
     await handleMessageSent("", media, type, groupId);
   };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setHasSearched(true);
-    fetchResources(query, category);
-  };
-
-  useEffect(() => {
-    if (hasSearched) {
-      fetchResources(query, category);
-    }
-  }, [category, currentPage]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
     setUploadStatus("");
+
     if (!file) {
       setUploadStatus("Please select a file to upload.");
       return;
@@ -96,7 +99,7 @@ const Resource = () => {
       "image/jpeg",
       "image/jpg",
       "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // docx
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "video/mp4",
     ];
 
@@ -109,7 +112,6 @@ const Resource = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-
       if (renameText.trim() !== "") {
         formData.append("renameText", renameText);
       }
@@ -119,15 +121,13 @@ const Resource = () => {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
+      if (!response.ok) throw new Error("Upload failed");
 
       setUploadStatus("Upload successful!");
       setRenameText("");
       setFile(null);
 
-      if (hasSearched) fetchResources(query, category);
+      if (hasSearched) fetchResources();
     } catch (error) {
       console.error("Upload error:", error);
       setUploadStatus("Failed to upload the file. Please try again.");
@@ -148,9 +148,10 @@ const Resource = () => {
             <img src="icons/logo.png" className="w-20 h-20" />
             <h1>UMI Resource Library</h1>
           </div>
+
           <form
             onSubmit={handleSearchSubmit}
-            className={`flex flex-col sm:flex-row items-center gap-4 my-6`}
+            className="flex flex-col sm:flex-row items-center gap-4 my-6"
           >
             <input
               type="text"
@@ -175,13 +176,11 @@ const Resource = () => {
                 <button
                   key={value}
                   onClick={() => setCategory(value)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition
-                    ${
-                      category === value
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }
-                  `}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                    category === value
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
                 >
                   {label}
                 </button>
@@ -190,24 +189,22 @@ const Resource = () => {
           )}
 
           {hasSearched ? (
-            <div className="no-scrollbar max-h-[500px">
+            <div className="no-scrollbar max-h-[500px]">
               {resources.length > 0 ? (
                 <div className="flex flex-col">
                   <ul className="space-y-6">
-                    {resources.map((res) => {
-                      return (
-                        <li
-                          key={res.id}
-                          className="border-b border-gray-200 rounded-md transition"
-                        >
-                          <ResourceCard
-                            res={res}
-                            currentGroups={currentGroups}
-                            handleForwardResource={handleForwardResource}
-                          />
-                        </li>
-                      );
-                    })}
+                    {resources.map((res) => (
+                      <li
+                        key={res.id}
+                        className="border-b border-gray-200 rounded-md transition"
+                      >
+                        <ResourceCard
+                          res={res}
+                          currentGroups={currentGroups}
+                          handleForwardResource={handleForwardResource}
+                        />
+                      </li>
+                    ))}
                   </ul>
                   <PaginationControl
                     currentPage={currentPage}

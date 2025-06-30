@@ -8,6 +8,8 @@ import dev.young.backend.repository.GroupRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.mapstruct.*;
 
+import java.time.LocalDateTime;
+
 @Mapper(componentModel = "spring")
 public interface EventMapper {
 
@@ -27,6 +29,12 @@ public interface EventMapper {
     @AfterMapping
     default void setEventCreatorUsername(@MappingTarget EventDTO dto, Event event, @Context String eventCreatorUsername) {
         dto.setEventCreatorUsername(eventCreatorUsername);
+    }
+    @AfterMapping
+    default void setStatus(@MappingTarget EventDTO dto, Event event) {
+        LocalDateTime now = LocalDateTime.now();
+        String status = now.isBefore(event.getStartDate()) ? "upcoming" : (now.isBefore(event.getEndDate()) ? "ongoing" : "ended");
+        dto.setStatus(status);
     }
 
     @Named("mapGroupIdToGroup")
