@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -12,33 +13,28 @@ import java.io.InputStreamReader;
 @Configuration
 public class ShellCommandConfig {
 
-    @Value("${spring.profiles.active}")
-    private String activeProfile;
     @Value("${server.port}")
     private String port;
 
     public static String whSec = null;
 
     @Bean
+    @Profile("dev")
     CommandLineRunner commandLineRunner() {
-        if (activeProfile.equals("dev")) {
-            return args -> {
-                Process process = getProcess();
+        return args -> {
+            Process process = getProcess();
 
-                BufferedReader bf = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            try (BufferedReader bf = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
-                int index = -1;
                 while ((line = bf.readLine()) != null) {
-                    index = line.lastIndexOf("whsec_");
+                    int index = line.lastIndexOf("whsec_");
                     if (index != -1) {
                         whSec = line.substring(index);
                         break;
                     }
                 }
-            };
-        } else {
-            return null;
-        }
+            }
+        };
     }
 
     private Process getProcess() throws IOException {
