@@ -57,13 +57,13 @@ application:
       secret: ${SUPABASE_JWT_SECRET}
     stripe:
       secret-key: ${STRIPE_SECRET_KEY}
-      client-id: ${CLIENT_ID}
-      webhook-secret: ${WEBHOOK_SECRET}
+      client-id: ${STRIPE_CLIENT_ID}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET}
       prices:
-        starter-monthly: price_1RejmbCRihhzEjrx1c5e4k1b
-        starter-yearly: price_1RejpfCRihhzEjrxnhjYzbHg
-        pro-monthly: price_1Rejr6CRihhzEjrxEPlprYeQ
-        pro-yearly: price_1Reju2CRihhzEjrxoYzod6BX
+        starter-monthly: ${STRIPE_PRICE_STARTER_MONTHLY}
+        starter-yearly: ${STRIPE_PRICE_STARTER_YEARLY}
+        pro-monthly: ${STRIPE_PRICE_PRO_MONTHLY}
+        pro-yearly: ${STRIPE_PRICE_PRO_YEARLY}
 
 frontend:
   url: ${FRONTEND_URL}
