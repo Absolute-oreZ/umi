@@ -27,7 +27,7 @@ public class StripeController {
     @Value("${spring.profiles.active}")
     private String activeProfile;
 
-    @Value("${stripe.webhook-secret}")
+    @Value("${application.stripe.webhook-secret}")
     private String stripeWebhookSecret;
 
     private final StripeService stripeService;

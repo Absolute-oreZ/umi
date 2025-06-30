@@ -37,9 +37,9 @@ application:
     base-url: http://localhost
     service-token: test-token
   gemini-ai:
-    api-key: test-key
     base-url: http://localhost
     model: test-model
+    api-key: test-key
   supabase:
     bucket: test-bucket
     url: http://localhost
@@ -47,8 +47,20 @@ application:
       key: test-key
     jwt:
       secret: test-secret
+  stripe:
+    secret-key: test-secret
+    client-id: test-id
+    webhook-secret: test-secret
+    prices:
+      starter-monthly: test-price
+      starter-yearly: test-price
+      pro-monthly: test-price
+      pro-yearly: test-price
 
 frontend:
   url: http://localhost
   paths:
     groups: test-url
+
+server:
+  port: 0000
