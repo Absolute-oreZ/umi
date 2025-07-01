@@ -2,9 +2,7 @@ package dev.young.backend.controller;
 
 import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
-import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
-import dev.young.backend.config.ShellCommandConfig;
 import dev.young.backend.service.StripeService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 @Slf4j
 @RestController
@@ -33,20 +32,22 @@ public class StripeController {
     private final StripeService stripeService;
 
     @PostMapping("/subscription-checkout-session")
-    public ResponseEntity<String> createSubscriptionCheckoutSession(Authentication authentication, @RequestParam String plan) {
-        Session session = stripeService.createSubscriptionCheckOutSession(authentication, plan);
+    public ResponseEntity<Map<String, String>> createSubscriptionCheckoutSession(
+            Authentication authentication,
+            @RequestParam String plan) {
+        return ResponseEntity.ok(Map.of("url", stripeService.createSubscriptionCheckOutSession(authentication, plan)));
+    }
 
-        return session == null
-                ? ResponseEntity.status(INTERNAL_SERVER_ERROR).body("Failed to create checkout session.")
-                : ResponseEntity.ok(session.getUrl());
+    @PostMapping("/subscription-portal-session")
+    public ResponseEntity<Map<String, String>> createSubscriptionPortalSession(Authentication authentication) {
+        return ResponseEntity.ok(Map.of("url", stripeService.createPortalSession(authentication)));
     }
 
     @PostMapping("/webhook")
     public ResponseEntity<String> processStripeEvents(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sigHeader) {
         Event event = null;
         try {
-            String secret = activeProfile.equals("dev") ? ShellCommandConfig.whSec : stripeWebhookSecret;
-            event = Webhook.constructEvent(payload, sigHeader, secret);
+            event = Webhook.constructEvent(payload, sigHeader, stripeWebhookSecret);
         } catch (StripeException e) {
             log.error("Error parsing webhook request {}", e.getMessage(), e);
             return ResponseEntity.status(BAD_REQUEST).body(null);

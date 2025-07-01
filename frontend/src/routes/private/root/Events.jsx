@@ -73,11 +73,11 @@ const Events = () => {
     { value: "ends", label: "Ends" },
     { value: "title", label: "Title" },
   ];
-  
+
   const activeFilterCount =
-  (statusFilter.value !== "all" ? 1 : 0) +
-  (creatorFilter.value !== "all" ? 1 : 0);
-  
+    (statusFilter.value !== "all" ? 1 : 0) +
+    (creatorFilter.value !== "all" ? 1 : 0);
+
   // load persisted state from sessionStorage on mount
   useEffect(() => {
     fetchEvents();
@@ -404,7 +404,7 @@ const Events = () => {
             <div className="relative">
               <button
                 onClick={() => setSortMenuOpen((o) => !o)}
-                className={`flex items-center bg-gray-800 gap-2 ${
+                className={`flex items-center group hover:cursor-pointer bg-gray-800 gap-2 ${
                   sortItem !== "none"
                     ? "text-amber-300 rounded-xl px-3 py-1.5"
                     : "text-light-200 rounded-full p-2"
@@ -415,6 +415,9 @@ const Events = () => {
                 ) : (
                   getSortLabel()
                 )}
+                <span className="absolute top-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform translate-y-1 transition-all duration-300 pointer-events-none z-20">
+                  Sorted by ${sortItem}
+                </span>
               </button>
 
               {sortMenuOpen && (
@@ -460,7 +463,7 @@ const Events = () => {
             <div className="relative">
               <button
                 onClick={() => setFilterMenuOpen((o) => !o)}
-                className={`flex items-center gap-2 bg-gray-800  ${
+                className={`flex items-center gap-2 bg-gray-800 group hover:cursor-pointer  ${
                   activeFilterCount
                     ? "text-amber-300 rounded-xl px-3 py-1.5"
                     : "text-light-200 p-2 rounded-full"
@@ -468,6 +471,9 @@ const Events = () => {
               >
                 <BiFilterAlt size={20} />
                 {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+                <span className="absolute top-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform translate-y-1 transition-all duration-300 pointer-events-none z-20">
+                  Filtered by {activeFilterCount} rules
+                </span>
               </button>
 
               {filterMenuOpen && (

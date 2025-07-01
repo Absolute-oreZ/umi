@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { testimonials, pricingOptions } from "../../constants";
+import { Link, useNavigate } from "react-router-dom";
+import { toast, Zoom } from "react-toastify";
+import { testimonials } from "../../constants";
+import Pricings from "../../components/common/Pricings";
 import CountUp from "../../components/common/CountUp";
-
-const planType = ["Pay Monthly", "Pay Yearly (save 25%)"];
+import { useAuth } from "../../context/AuthContext";
+import { customFetch } from "../../api/fetchInstance";
 
 const LandingPage = () => {
-  const [selectedPlan, setSelectedPlan] = useState(planType[0]);
+  const navigate = useNavigate();
+  const { session } = useAuth();
   const [currentTestimonialIndex, setCurrentTestimonialIndex] = useState(0);
 
   const nextTestimonial = () => {
@@ -19,6 +22,45 @@ const LandingPage = () => {
     setCurrentTestimonialIndex((prevIndex) =>
       prevIndex === 0 ? testimonials.length - 1 : prevIndex - 1
     );
+  };
+
+  const handleGetStarted = async (e, plan, interval) => {
+    e.preventDefault();
+
+    if (!session) {
+      navigate("/login");
+      return;
+    }
+
+    if (plan === "Lite") {
+      navigate("/me");
+    } else {
+      try {
+        const planType = plan.toLowerCase() + "_" + interval.toLowerCase();
+        const formData = new FormData();
+        formData.append("plan", planType);
+        const res = await customFetch("/stripe/subscription-checkout-session", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (data.url) {
+          window.open(data.url, "_blank", "noopener,noreferrer");
+        }
+      } catch (err) {
+        console.error("Failed to open checkout session:", err);
+        toast.error(`Error choosing a plan, please try again later.`, {
+          closeOnClick: true,
+          closeButton: true,
+          isLoading: false,
+          theme: "dark",
+          autoClose: 3000,
+          transition: Zoom,
+        });
+      }
+    }
   };
 
   useEffect(() => {
@@ -120,33 +162,7 @@ const LandingPage = () => {
         </div>
       </div>
 
-      <div className="text-slate-700 flex flex-col p-10 items-center">
-        <h1 className="mb-3 text-2xl font-semibold">PLANS & PRICINGS</h1>
-        <h2 className="text-lg mb-10">
-          Everyone can learn, yet premium makes it more efficient
-        </h2>
-        <div className="flex gap-4 mb-10">
-          {planType.map((type) => (
-            <button
-              key={type}
-              onClick={() => setSelectedPlan(type)}
-              className={`px-4 py-2 rounded border ${
-                selectedPlan === type
-                  ? "bg-white text-black"
-                  : "border-white text-slate-500"
-              }`}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-10">
-          {pricingOptions.map((plan, i) => (
-            <PricingCard key={i} {...plan} />
-          ))}
-        </div>
-      </div>
+      <Pricings handleGetStarted={handleGetStarted} />
 
       <footer className="p-10 text-white border-t border-gray-600">
         <div className="flex justify-between">
@@ -170,7 +186,6 @@ const LandingPage = () => {
   );
 };
 
-// The rest of your components unchanged
 const StatisticCard = ({ emoji, count, title }) => (
   <div className="flex items-center gap-3 text-xl w-64 justify-center text-slate-700">
     <span className="text-2xl">{emoji}</span>
@@ -196,39 +211,6 @@ const TestimonialItem = ({ testimonial, author }) => (
     <cite className="block mt-4 text-sm font-semibold text-purple-600">
       {author}
     </cite>
-  </div>
-);
-
-const PricingCard = ({
-  header,
-  type,
-  target,
-  price,
-  features,
-  joinQuote,
-  isMostPopular,
-}) => (
-  <div className="w-80 bg-gray-100 rounded-md text-black pb-10">
-    <div className="bg-green-300 text-center p-2 text-sm font-semibold">
-      {header}
-    </div>
-    <div className="p-6 flex flex-col h-full justify-between">
-      <div>
-        <div>
-          <h3 className="text-2xl font-bold">{type}</h3>
-          <p className="text-sm text-gray-600">{target}</p>
-          <p className="text-4xl font-extrabold mt-2">{price}</p>
-        </div>
-        <ul className="text-sm list-disc ml-5">
-          {features.map((f, i) => (
-            <li key={i}>{f}</li>
-          ))}
-        </ul>
-      </div>
-      <button className="mt-4 bg-black text-white px-4 py-2 rounded hover:bg-gray-800">
-        {joinQuote}
-      </button>
-    </div>
   </div>
 );
 

@@ -13,6 +13,8 @@ import {
   Events,
   Groups,
   Resources,
+  Pricing,
+  Downloads
 } from "./routes/index";
 import AuthProvider from "./context/AuthContext";
 import { ToastContainer } from "react-toastify";
@@ -39,6 +41,8 @@ const App = () => {
                 <Route path="/edit-profile" element={<EditProfile />} />
                 <Route path="/groups" element={<Groups />} />
                 <Route path="/resources" element={<Resources />} />
+                <Route path="/downloads" element={<Downloads />} />
+                <Route path="/pricing" element={<Pricing />} />
               </Route>
 
               <Route

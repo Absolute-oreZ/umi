@@ -152,7 +152,6 @@ const EditProfile = () => {
                 </div>
               </div>
 
-              {/* Username Field */}
               <div>
                 <h2 className="text-xl font-semibold mb-4 mt-8">Username</h2>
                 <input

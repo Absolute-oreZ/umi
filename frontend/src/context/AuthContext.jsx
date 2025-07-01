@@ -8,6 +8,7 @@ const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [subscription, setSubscription] = useState(null);
   const [session, setSession] = useState(null);
   const [fetchingUserData, setfetchingUserData] = useState(false);
   const [loading, setloading] = useState(true);
@@ -39,6 +40,19 @@ const AuthProvider = ({ children }) => {
       console.log(error);
     } finally {
       setfetchingUserData(false);
+    }
+  };
+
+  const fetchSubscrption = async () => {
+    try {
+      const response = await customFetch("/users/subscription");
+      const data = await response.json();
+
+      console.log("subscription: ", data);
+
+      setSubscription(data);
+    } catch (error) {
+      console.error("Error fetching subscription data");
     }
   };
 
@@ -123,6 +137,7 @@ const AuthProvider = ({ children }) => {
         setAuthToken(session.access_token);
         try {
           await fetchUser();
+          await fetchSubscrption();
         } catch (error) {
           console.error("Failed to fetch user data", error);
 
@@ -132,6 +147,7 @@ const AuthProvider = ({ children }) => {
               if (data?.session) {
                 setAuthToken(data.session.access_token);
                 await fetchUser();
+                await fetchSubscrption();
               } else {
                 signOutRef.current();
               }
@@ -169,6 +185,7 @@ const AuthProvider = ({ children }) => {
         user,
         session,
         loading,
+        subscription,
         fetchingUserData,
         signIn,
         signUp,

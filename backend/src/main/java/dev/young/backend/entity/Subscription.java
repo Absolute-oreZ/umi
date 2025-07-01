@@ -3,13 +3,6 @@ package dev.young.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -19,14 +12,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "_subscription")
-public class Subscription {
-    @Id
-    private String id;
+public class Subscription extends BaseEntity {
+    @Column(unique = true)
+    private String stripeSubscriptionId;
 
     @Column(nullable = false)
     private String plan;
 
-    @OneToOne
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
@@ -38,20 +31,4 @@ public class Subscription {
 
     private Long currentPeriodStart;
     private Long currentPeriodEnd;
-
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdDate;
-
-    @LastModifiedDate
-    @Column(insertable = false)
-    private LocalDateTime lastModifiedDate;
-
-    @CreatedBy
-    @Column(nullable = false, updatable = false)
-    private UUID createdBy;
-
-    @LastModifiedBy
-    @Column(insertable = false)
-    private UUID lastModifiedBy;
 }

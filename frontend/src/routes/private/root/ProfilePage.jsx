@@ -1,11 +1,15 @@
-import { Link, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { CgProfile } from "react-icons/cg";
+import { toast, Zoom } from "react-toastify";
 import { useAuth } from "../../../context/AuthContext";
 import { ProfilePageSkeleton } from "../../../skeletons";
 import GradientText from "../../../components/common/GradientText";
+import { customFetch } from "../../../api/fetchInstance";
 
 const ProfilePage = () => {
-  const { user, loading, fetchingUserData } = useAuth();
+  const navigate = useNavigate();
+  const { user, subscription, loading, fetchingUserData } = useAuth();
 
   if (!user || loading || fetchingUserData) {
     return <ProfilePageSkeleton />;
@@ -14,6 +18,54 @@ const ProfilePage = () => {
   if (!user.learningPreference || !user.username) {
     return <Navigate to="/profile-completion" />;
   }
+
+  const handleManageSubscription = async (e) => {
+    e.preventDefault();
+
+    if (subscription.tier === "lite") {
+      navigate("/pricing");
+      return;
+    }
+
+    try {
+      const res = await customFetch("/stripe/subscription-portal-session", {
+        method: "POST",
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      }
+    } catch (err) {
+      console.error("Failed to open portal session:", err);
+      toast.error(`Unknown error occured, please try again later.`, {
+        closeOnClick: true,
+        closeButton: true,
+        isLoading: false,
+        theme: "dark",
+        autoClose: 3000,
+        transition: Zoom,
+      });
+    }
+  };
+
+  useEffect(() => {
+    const fetchSubscrption = async () => {
+      try {
+        const response = await customFetch("/users/subscription");
+        const data = await response.json();
+
+        console.log("subscription: ", data);
+
+        setSubscription(data);
+      } catch (error) {
+        console.error("Error fetching subscription data");
+      }
+    };
+
+    fetchSubscrption();
+  }, []);
 
   const {
     username,
@@ -55,14 +107,46 @@ const ProfilePage = () => {
               </button>
             </Link>
           </div>
+
+          <div className="rounded-lg p-6">
+            {subscription ? (
+              <div className="flex flex-col justify-center">
+                <h2 className="text-xl text-center font-semibold text-teal-200 mb-4">
+                  Subscription
+                </h2>
+                <p>
+                  <span className="font-medium text-white">Tier:</span>{" "}
+                  <span className="text-cyan-300 capitalize">
+                    {subscription.tier}
+                  </span>
+                </p>
+                <p>
+                  <span className="font-medium text-white">Interval:</span>{" "}
+                  <span className="text-cyan-300 capitalize">
+                    {subscription.interval}
+                  </span>
+                </p>
+
+                <button
+                  onClick={handleManageSubscription}
+                  className="mt-4 px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 hover:cursor-pointer"
+                >
+                  Manage Subscription
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">
+                No subscription information available.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="col-span-2 space-y-8">
           <div className="rounded-lg p-6">
-            <GradientText className="text-3xl mb-8 font-semibold text-start">Hello There, {username} Here</GradientText>
-            {/* <h2 className="text-3xl mb-8 font-semibold text-start text-gradient">
+            <GradientText className="text-3xl mb-8 font-semibold text-start">
               Hello There, {username} Here
-            </h2> */}
+            </GradientText>
             <p className="text-base border-t-2 rounded-md border-cyan-500 py-3">
               Hello, I'm {username} from {country || "an unknown location"}! I
               enjoy learning through a combination of{" "}

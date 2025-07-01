@@ -11,3 +11,5 @@ export { default as EditProfile } from "./private/root/EditProfile";
 export { default as Events } from "./private/root/Events";
 export { default as Resources } from "./private/root/Resources";
 export { default as Groups } from "./private/root/Groups";
+export { default as Pricing } from "./private/root/Pricing";
+export { default as Downloads } from "./private/root/Downloads";

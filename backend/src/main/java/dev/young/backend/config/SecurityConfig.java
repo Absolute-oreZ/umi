@@ -37,7 +37,8 @@ public class SecurityConfig {
             "/ws/**",
             "/ws",
             "/actuator",
-            "/actuator/**"
+            "/actuator/**",
+            "/api/v1/stripe/webhook"
     };
 
     @Bean

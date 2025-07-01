@@ -368,14 +368,17 @@ const InputBar = ({ groupId, members, handleMessageSent }) => {
           <button
             onClick={() => setShowPicker((prev) => !prev)}
             disabled={!canSelectEmoji}
-            className="hover:bg-gray-700 p-2 rounded"
+            className="hover:bg-gray-700 p-2 rounded group"
           >
             <MdOutlineEmojiEmotions className="w-6 h-6 text-gray-300" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform translate-y-1 transition-all duration-300 pointer-events-none z-20">
+              Emojis
+            </span>
           </button>
 
           <label
             htmlFor="file-upload"
-            className={`hover:bg-gray-700 p-2 rounded cursor-pointer ${
+            className={`hover:bg-gray-700 p-2 rounded cursor-pointer group ${
               !canAttachFile ? "cursor-not-allowed opacity-50" : ""
             }`}
           >
@@ -388,6 +391,9 @@ const InputBar = ({ groupId, members, handleMessageSent }) => {
               onChange={handleFileChange}
               disabled={!canAttachFile}
             />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform translate-y-1 transition-all duration-300 pointer-events-none z-20">
+              Attach file
+            </span>
           </label>
         </div>
 
@@ -421,9 +427,12 @@ const InputBar = ({ groupId, members, handleMessageSent }) => {
         {hasMedia && (
           <button
             onClick={discardMedia}
-            className="p-2 flex items-center justify-center rounded-md w-10 h-10 text-red-600 hover:text-white hover:bg-red-600"
+            className="p-2 flex items-center justify-center rounded-md w-10 h-10 text-red-600 hover:text-white hover:bg-red-600 group"
           >
             <MdDeleteForever />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-3 py-1.5 text-xs text-white bg-gray-800 rounded shadow-lg opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform translate-y-1 transition-all duration-300 pointer-events-none z-20">
+              Discard media
+            </span>
           </button>
         )}
 

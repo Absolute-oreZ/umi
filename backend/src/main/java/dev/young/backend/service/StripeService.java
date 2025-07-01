@@ -1,3 +1,6 @@
+/*
+stripe listen --forward-to localhost:8082/api/v1/stripe/webhook --events checkout.session.completed,customer.subscription.updated,customer.subscription.deleted
+*/
 package dev.young.backend.service;
 
 import com.stripe.Stripe;
@@ -8,7 +11,6 @@ import com.stripe.net.RequestOptions;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.CustomerUpdateParams;
 import com.stripe.param.PriceListParams;
-import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import dev.young.backend.entity.User;
 import dev.young.backend.repository.SubscriptionRepository;
@@ -21,10 +23,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.UUID;
 
-import static com.stripe.param.checkout.SessionCreateParams.ConsentCollection.TermsOfService.REQUIRED;
 import static com.stripe.param.checkout.SessionCreateParams.Mode.SUBSCRIPTION;
 
 @Slf4j
@@ -56,14 +56,209 @@ public class StripeService {
         Stripe.apiKey = stripeSecretKey;
     }
 
+    public String createSubscriptionCheckOutSession(Authentication authentication, String plan) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
+        String customerId = getStripeCustomerId(user);
+
+        RequestOptions options = RequestOptions.builder()
+                .setApiKey(stripeSecretKey)
+                .setIdempotencyKey(UUID.randomUUID().toString())
+                .build();
+
+        PriceListParams priceParams = PriceListParams.builder()
+                .addLookupKey(plan)
+                .setActive(true)
+                .build();
+
+        try {
+            PriceCollection prices = Price.list(priceParams);
+
+            if (prices.getData().isEmpty()) {
+                throw new IllegalStateException("No price found for plan: " + plan);
+            }
+
+            String priceId = prices.getData().get(0).getId();
+            String tier = resolveTierFromPriceId(priceId);
+            ;
+
+            SessionCreateParams sessionParams = SessionCreateParams.builder()
+                    .setMode(SUBSCRIPTION)
+                    .setCustomer(customerId)
+                    .setSuccessUrl(siteUrl + "/me")
+                    .setCancelUrl(siteUrl + "/me")
+//                    .setUiMode(EMBEDDED)
+                    .putMetadata("priceId", priceId)
+                    .putMetadata("tier", tier)
+                    .putMetadata("plan", plan)
+                    .addLineItem(
+                            SessionCreateParams.LineItem.builder()
+                                    .setPrice(priceId)
+                                    .setQuantity(1L)
+                                    .build()
+                    )
+                    .build();
+
+            Session session = Session.create(sessionParams, options);
+
+            if (session == null || session.getUrl() == null) {
+                throw new RuntimeException("Error creating checkout session");
+            }
+
+            return session.getUrl();
+        } catch (StripeException e) {
+            log.error("StripeException when creating checkout session: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create Stripe Checkout session", e);
+        }
+    }
+
+    public String createPortalSession(Authentication authentication) {
+        UUID userId = (UUID) authentication.getPrincipal();
+        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
+        String customerId = getStripeCustomerId(user);
+
+        RequestOptions options = RequestOptions.builder()
+                .setApiKey(stripeSecretKey)
+                .setIdempotencyKey(UUID.randomUUID().toString())
+                .build();
+
+        com.stripe.param.billingportal.SessionCreateParams params = new com.stripe.param.billingportal.SessionCreateParams.Builder()
+                .setCustomer(customerId)
+                .setReturnUrl(siteUrl + "/me").build();
+
+        try {
+            com.stripe.model.billingportal.Session session = com.stripe.model.billingportal.Session.create(params, options);
+
+            if (session == null || session.getUrl() == null) {
+                throw new RuntimeException("Error creating checkout session");
+            }
+
+            return session.getUrl();
+        } catch (StripeException e) {
+            log.error("StripeException when creating portal session: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create Stripe Portal session", e);
+        }
+    }
+
+    public void processEvent(Event event) {
+        EventDataObjectDeserializer dataObjectDeserializer = event.getDataObjectDeserializer();
+        StripeObject stripeObject = dataObjectDeserializer.getObject()
+                .orElseThrow(() -> new RuntimeException("Failed to deserialize Stripe event object"));
+
+        switch (event.getType()) {
+            case "checkout.session.completed" -> handleCheckoutSessionCompleted(stripeObject);
+            case "customer.subscription.updated" -> handleSubscriptionUpdated(stripeObject);
+            case "customer.subscription.deleted" -> handleSubscriptionDeleted(stripeObject);
+            default -> log.info("Unhandled Stripe event type: {}", event.getType());
+        }
+    }
+
+    private void handleCheckoutSessionCompleted(StripeObject stripeObject) {
+        Session session = (Session) stripeObject;
+
+        if (!"subscription".equals(session.getMode())) {
+            log.info("Ignoring session not in subscription mode");
+            return;
+        }
+
+        String subscriptionId = session.getSubscription();
+        String customerId = session.getCustomer();
+
+        if (subscriptionId == null || customerId == null) {
+            log.warn("Missing subscription or customer ID in session {}", session.getId());
+            return;
+        }
+
+        User user = userRepository.findByStripeCustomerId(customerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with customer ID: " + customerId));
+
+        dev.young.backend.entity.Subscription localSub = user.getSubscription();
+
+        if (localSub == null) {
+            log.warn("User {} does not have a local subscription record. Skipping update.", user.getId());
+            return;
+        }
+
+        Subscription subscription = getSubscriptionBySubscriptionId(subscriptionId);
+        if (subscription == null) {
+            log.error("Could not retrieve subscription from Stripe with ID {}", subscriptionId);
+            return;
+        }
+
+        SubscriptionItem item = subscription.getItems().getData().get(0);
+        String plan = item.getPrice().getLookupKey();
+        if (plan == null) {
+            plan = item.getPrice().getId(); // fallback
+        }
+        String tier = plan.substring(0, plan.indexOf("_"));
+
+        localSub.setTier(tier);
+        localSub.setPlan(plan);
+        localSub.setStatus(subscription.getStatus());
+        localSub.setStripeSubscriptionId(subscription.getId());
+        localSub.setCurrentPeriodStart(item.getCurrentPeriodStart());
+        localSub.setCurrentPeriodEnd(item.getCurrentPeriodEnd());
+
+        subscriptionRepository.save(localSub);
+        log.info("Updated local subscription via checkout.session.completed for user {}", user.getId());
+    }
+
+    private void handleSubscriptionUpdated(StripeObject stripeObject) {
+        Subscription subscription = (Subscription) stripeObject;
+        String stripeSubscriptionId = subscription.getId();
+
+        dev.young.backend.entity.Subscription localSub = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
+                .orElseThrow(() -> new EntityNotFoundException("Subscription not found with Stripe ID: " + stripeSubscriptionId));
+
+        if (subscription.getItems().getData().isEmpty()) {
+            log.warn("No subscription items found in update event for subscription {}", stripeSubscriptionId);
+            return;
+        }
+
+        SubscriptionItem item = subscription.getItems().getData().get(0);
+
+        String plan = item.getPrice().getLookupKey();
+        if (plan == null) {
+            plan = item.getPrice().getId(); // fallback
+        }
+        String tier = plan.substring(0, plan.indexOf("_"));
+
+        localSub.setTier(tier);
+        localSub.setPlan(plan);
+        localSub.setStatus(subscription.getStatus());
+        localSub.setCurrentPeriodStart(item.getCurrentPeriodStart());
+        localSub.setCurrentPeriodEnd(item.getCurrentPeriodEnd());
+
+        subscriptionRepository.save(localSub);
+        log.info("Updated local subscription from Stripe update event for subscription {}", stripeSubscriptionId);
+    }
+
+    private void handleSubscriptionDeleted(StripeObject stripeObject) {
+        Subscription subscription = (Subscription) stripeObject;
+        String stripeSubscriptionId = subscription.getId();
+
+        dev.young.backend.entity.Subscription localSub = subscriptionRepository.findByStripeSubscriptionId(stripeSubscriptionId)
+                .orElseThrow(() -> new EntityNotFoundException("Subscription not found with Stripe ID: " + stripeSubscriptionId));
+
+        localSub.setPlan("lite");
+        localSub.setTier("lite");
+        localSub.setStatus("canceled");
+        localSub.setStripeSubscriptionId(null);
+        localSub.setCurrentPeriodStart(null);
+        localSub.setCurrentPeriodEnd(null);
+
+        subscriptionRepository.save(localSub);
+        log.info("Soft-deleted local subscription by downgrading to 'lite' for Stripe subscription {}", stripeSubscriptionId);
+    }
+
     public void updateCustomerName(String customerId, String newUserName) {
         try {
             Customer customer = Customer.retrieve(customerId);
             ;
 
             RequestOptions options = RequestOptions.builder()
+                    .setApiKey(stripeSecretKey)
                     .setIdempotencyKey(UUID.randomUUID().toString())
-                    .setStripeAccount(stripeClientId)
                     .build();
 
             CustomerUpdateParams params = CustomerUpdateParams.builder()
@@ -76,165 +271,15 @@ public class StripeService {
         }
     }
 
-    public Session createSubscriptionCheckOutSession(Authentication authentication, String plan) {
-        UUID userId = (UUID) authentication.getPrincipal();
-        User user = userRepository.findById(userId).orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
-        String customerId = getStripeCustomerId(user);
-
-        RequestOptions options = RequestOptions.builder()
-                .setIdempotencyKey(UUID.randomUUID().toString())
-                .setStripeAccount(stripeClientId)
-                .build();
-
-        PriceListParams priceParams = PriceListParams.builder()
-                .addAllLookupKey(Collections.singletonList(plan.toLowerCase()))
-                .setActive(true)
-                .build();
-
-
+    private Subscription getSubscriptionBySubscriptionId(String subscriptionId) {
         try {
-            PriceCollection prices = Price.list(priceParams);
-
-            if (prices.getData().isEmpty()) {
-                throw new IllegalStateException("No price found for plan: " + plan);
-            }
-
-            String priceId = prices.getData().get(0).getId();
-            String tier = resolveTierFromPriceId(priceId);
-
-            SessionCreateParams sessionParams = SessionCreateParams.builder()
-                    .setMode(SUBSCRIPTION)
-                    .setCustomer(customerId)
-                    .setSuccessUrl(siteUrl + "/me?checkout=success")
-                    .setCancelUrl(siteUrl + "/me?checkout=cancel")
-                    .setConsentCollection(SessionCreateParams.ConsentCollection.builder()
-                            .setTermsOfService(REQUIRED)
-                            .build())
-//                    .setUiMode(EMBEDDED)
-                    .putMetadata("priceId", priceId)
-                    .putMetadata("tier", tier)
-                    .addLineItem(
-                            SessionCreateParams.LineItem.builder()
-                                    .setPrice(priceId)
-                                    .setQuantity(1L)
-                                    .build()
-                    )
-                    .build();
-
-            return Session.create(sessionParams, options);
+            return Subscription.retrieve(subscriptionId);
         } catch (StripeException e) {
-            log.error("StripeException when creating checkout session: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to create Stripe Checkout session", e);
+            log.error("Error retrieving subscription with ID {}: {}", subscriptionId, e.getMessage(), e);
+            return null;
         }
     }
 
-    public void processEvent(Event event) {
-        EventDataObjectDeserializer dataObjectDeserializer = event.getDataObjectDeserializer();
-        StripeObject stripeObject = null;
-
-        if (dataObjectDeserializer.getObject().isPresent()) {
-            stripeObject = dataObjectDeserializer.getObject().get();
-        } else {
-            // Deserialization failed, probably due to an API version mismatch.
-            // Refer to the Javadoc documentation on `EventDataObjectDeserializer` for
-            // instructions on how to handle this case, or return an error here.
-            log.error("Failed to deserialize object, might due to API version mismatch");
-            throw new RuntimeException("Failed to deserialize object,contact support");
-        }
-
-        switch (event.getType()) {
-            case "checkout.session.completed" -> handleCheckoutSessionCompleted(stripeObject);
-            case "customer.subscription.created" -> handleSubscriptionCreated(stripeObject);
-            case "customer.subscription.updated" -> handleSubscriptionUpdated(stripeObject);
-            case "customer.subscription.deleted" -> handleSubscriptionDeleted(stripeObject);
-            default -> {
-                log.info("Unhandled event type {}", event.getType());
-            }
-        }
-    }
-
-    private void handleCheckoutSessionCompleted(StripeObject stripeObject) {
-        Session session = (Session) stripeObject;
-
-        if (session.getMode().equals("subscription")) {
-            String subscriptionId = session.getSubscription();
-            String tier = session.getMetadata().get("tier");
-
-            if (tier == null) {
-                log.warn("Missing tier metadata in checkout.session.completed for session {}", session.getId());
-                return;
-            }
-
-            Subscription subscription = getSubscriptionBySubscriptionId(subscriptionId);
-
-            if (subscription == null) {
-                log.error("Subscription retrieval failed, cannot update metadata");
-                return;
-            }
-
-            try {
-                SubscriptionUpdateParams updateParams = SubscriptionUpdateParams.builder()
-                        .putMetadata("tier", tier)
-                        .build();
-                subscription.update(updateParams);
-            } catch (StripeException e) {
-                log.error("Error putting metadata tier {} into subscription param with id {}", tier, subscriptionId, e);
-            }
-        }
-    }
-
-    private void handleSubscriptionCreated(StripeObject stripeObject) {
-        Subscription subscription = (Subscription) stripeObject;
-        String customerId = subscription.getCustomer();
-        User user = userRepository.findByStripeCustomerId(customerId).orElseThrow(() -> new EntityNotFoundException("User not found with customer id " + customerId));
-
-        String tier = subscription.getMetadata().get("tier");
-
-        if(tier == null){
-            log.warn("Missing tier metadata in customer.subscription.created for subscription {}", subscription.getId());
-            return;
-        }
-
-        SubscriptionItem item = subscription.getItems().getData().get(0);
-
-        dev.young.backend.entity.Subscription sub = dev.young.backend.entity.Subscription.builder()
-                .id(subscription.getId())
-                .user(user)
-                .plan(item.getPlan().getNickname())
-                .tier(tier)
-                .status(subscription.getStatus())
-                .currentPeriodStart(item.getCurrentPeriodStart())
-                .currentPeriodEnd(item.getCurrentPeriodEnd())
-                .build();
-
-        user.setSubscription(sub);
-
-        subscriptionRepository.save(sub);
-    }
-
-    private void handleSubscriptionUpdated(StripeObject stripeObject) {
-        Subscription subscription = (Subscription) stripeObject;
-        dev.young.backend.entity.Subscription existingSub = subscriptionRepository.findById(subscription.getId()).orElseThrow(() -> new EntityNotFoundException("Subscription not found wid id " + subscription));
-
-        String tier = subscription.getMetadata() != null ? subscription.getMetadata().get("tier") : existingSub.getTier();
-
-        SubscriptionItem item = subscription.getItems().getData().get(0);
-
-        existingSub.setTier(tier);
-        existingSub.setPlan(item.getPlan().getNickname());
-        existingSub.setStatus(subscription.getStatus());
-        existingSub.setCurrentPeriodStart(item.getCurrentPeriodStart());
-        existingSub.setCurrentPeriodEnd(item.getCurrentPeriodStart());
-        subscriptionRepository.save(existingSub);
-    }
-
-    private void handleSubscriptionDeleted(StripeObject stripeObject) {
-        Subscription subscription = (Subscription) stripeObject;
-        dev.young.backend.entity.Subscription existingSub = subscriptionRepository.findById(subscription.getId()).orElseThrow(() -> new EntityNotFoundException("Subscription not found wid id " + subscription));
-
-        existingSub.setStatus("canceled");
-        subscriptionRepository.save(existingSub);
-    }
 
     private String getStripeCustomerId(User user) {
         if (user.getStripeCustomerId() != null) {
@@ -242,8 +287,8 @@ public class StripeService {
         }
 
         RequestOptions options = RequestOptions.builder()
+                .setApiKey(stripeSecretKey)
                 .setIdempotencyKey(UUID.randomUUID().toString())
-                .setStripeAccount(stripeClientId)
                 .build();
 
         CustomerCreateParams params = CustomerCreateParams.builder()
@@ -271,14 +316,5 @@ public class StripeService {
         }
 
         return "free";
-    }
-
-    private Subscription getSubscriptionBySubscriptionId(String subscriptionId) {
-        try {
-            return Subscription.retrieve(subscriptionId);
-        } catch (StripeException e) {
-            log.error("Error retrieving subscription with id {}", subscriptionId, e);
-            return null;
-        }
     }
 }

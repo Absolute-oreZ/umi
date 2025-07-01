@@ -1,7 +1,9 @@
 package dev.young.backend.controller;
 
 import dev.young.backend.dto.user.ProfileUpdateDTO;
+import dev.young.backend.dto.user.SubscriptionDTO;
 import dev.young.backend.dto.user.UserDTO;
+import dev.young.backend.service.SubscriptionService;
 import dev.young.backend.service.UserService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
+    private final SubscriptionService subscriptionService;
 
     @GetMapping("/profile")
     public ResponseEntity<UserDTO> getProfile(Authentication connectedUser) {
@@ -31,6 +34,13 @@ public class UserController {
     public ResponseEntity<UserDTO> getProfile(@PathVariable String username) {
         UserDTO userDTO = userService.getProfile(username);
         return ResponseEntity.ok(userDTO);
+    }
+
+    @GetMapping("/subscription")
+    public ResponseEntity<SubscriptionDTO> getCurrentUserSubscription(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(subscriptionService.getSubscription(authentication));
     }
 
     @PatchMapping("/update-profile")
