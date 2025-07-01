@@ -2,11 +2,13 @@ import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { setAuthToken, customFetch } from "../api/fetchInstance";
 import { supabase } from "../clients/supabaseClient";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
+  const isOnline = useOnlineStatus();
   const [user, setUser] = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [session, setSession] = useState(null);
@@ -129,6 +131,10 @@ const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    if (!isOnline) {
+      setloading(false);
+      return;
+    }
     const handleAuthStateChange = async (event, session) => {
       setSession(session);
       setloading(true);
@@ -177,7 +183,7 @@ const AuthProvider = ({ children }) => {
     } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isOnline]);
 
   return (
     <AuthContext.Provider

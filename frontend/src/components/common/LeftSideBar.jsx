@@ -51,10 +51,7 @@ const Downloads = ({ path }) => {
 
 const LeftSideBar = () => {
   const location = useLocation();
-
   const { subscription, signOut } = useAuth();
-
-  console.log(subscription?.tier);
 
   return (
     <div className="h-screen w-[70px] bg-gray-900 flex flex-col justify-between items-center py-10 shadow-md">

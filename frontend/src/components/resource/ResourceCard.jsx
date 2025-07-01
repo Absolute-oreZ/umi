@@ -1,8 +1,11 @@
 import { TbFileTypeDocx, TbFileTypePdf } from "react-icons/tb";
 import { useState, useRef, useEffect } from "react";
-import { formatDate,validateFileSize } from "../../utils";
+import { formatDate } from "../../utils";
+import { useAuth } from "../../context/AuthContext";
+import SaveButton from "../common/SaveButton";
 
 const ResourceCard = ({ res, currentGroups, handleForwardResource }) => {
+  const { subscription } = useAuth();
   const isImage = res.category === "IMAGE";
   const isVideo = res.category === "VIDEO";
 
@@ -104,6 +107,7 @@ const ResourceCard = ({ res, currentGroups, handleForwardResource }) => {
           >
             Forward
           </button>
+          {(subscription.tier === "starter" || subscription.tier === "pro") && <SaveButton url={res.resourcePath} />}
 
           {isPopupOpen && (
             <div

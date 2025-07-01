@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { GiRamProfile } from "react-icons/gi";
 import { IoCheckmarkDoneOutline, IoCheckmarkOutline } from "react-icons/io5";
 import { TbFileTypeDocx, TbFileTypePdf } from "react-icons/tb";
+import { useAuth } from "../../context/AuthContext";
 import Loader from "../common/Loader";
-import {
-  formatTimestampToTime,
-  getFileNameFromPath,
-} from "../../utils";
+import SaveButton from "../common/SaveButton";
+import { formatTimestampToTime, getFileNameFromPath } from "../../utils";
 
 const MessageBubble = ({
   message,
@@ -15,6 +14,7 @@ const MessageBubble = ({
   handleShowProfile,
   handleMediaLoad,
 }) => {
+  const { subscription } = useAuth();
   const {
     content,
     messageStatus,
@@ -127,9 +127,7 @@ const MessageBubble = ({
             )}
             {messageType === "IMAGE" && mediaPath && (
               <>
-                {!isMediaLoaded && (
-                  <Loader size={20} text="Loading Media" />
-                )}
+                {!isMediaLoaded && <Loader size={20} text="Loading Media" />}
                 <img
                   src={mediaPath}
                   alt="Media"
@@ -158,6 +156,12 @@ const MessageBubble = ({
                 >
                   Download
                 </a>
+                <button
+                  type="button"
+                  className="p-2 rounded-md shadow-sm w-full text-center bg-neutral-700 hover:bg-neutral-8000 transition-colors text-xs"
+                >
+                  <SaveButton url={mediaPath} />
+                </button>
               </div>
             )}
             {messageType === "DOCX" && mediaPath && (
@@ -179,6 +183,15 @@ const MessageBubble = ({
                 >
                   Download
                 </a>
+                {(subscription.tier === "starter" ||
+                  subscription.tier === "pro") && (
+                  <button
+                    type="button"
+                    className="p-2 rounded-md shadow-sm w-full text-center bg-neutral-700 hover:bg-neutral-8000 transition-colors text-xs"
+                  >
+                    <SaveButton url={mediaPath} />
+                  </button>
+                )}
               </div>
             )}
             {messageType === "AUDIO" && (

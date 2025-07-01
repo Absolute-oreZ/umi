@@ -4,6 +4,7 @@ export { default as SignInPage } from "./public/auth/SignInPage";
 export { default as SignupPage } from "./public/auth/SignUpPage";
 export { default as ResetPasswordPage } from "./public/auth/ResetPasswordPage";
 export { default as PrivateRoute } from "./private/PrivateRoute";
+export { default as OnlineOnlyRoute } from "./private/OnlineOnlyRoute";
 export{ default as ProfileCompletionLayout} from "./private/profile-completion/ProfileCompletionLayout"
 export { default as RootLayout } from "./private/root/RootLayout";
 export { default as Profile } from "./private/root/ProfilePage";

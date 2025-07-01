@@ -7,6 +7,7 @@ import { customFetch } from "../api/fetchInstance";
 import MessageToast from "../components/common/MessageToast";
 import { formatImagePath, moveToFirst } from "../utils";
 import { useAuth } from "./AuthContext";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const backendBaseurl = backendUrl.split("/api")[0];
@@ -17,6 +18,7 @@ export const useWebSocket = () => useContext(WebSocketContext);
 const WebSocketProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isOnline = useOnlineStatus();
   const { user, session, loading, fetchingUserData } = useAuth();
 
   const [socket, setSocket] = useState(null);
@@ -49,6 +51,19 @@ const WebSocketProvider = ({ children }) => {
   useEffect(() => {
     locationRef.current = location;
   }, [location]);
+
+  useEffect(() => {
+    if (!isOnline || !session?.access_token) {
+      subscriptions.forEach((sub) => sub.unsubscribe());
+      if (socket) socket.deactivate();
+      setSocket(null);
+      return;
+    }
+
+    if (!loading && session && user) {
+      connectWebSocket();
+    }
+  }, [isOnline, loading, session, user]);
 
   const fetchGroups = async () => {
     try {
