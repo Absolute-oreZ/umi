@@ -60,7 +60,7 @@ public class GroupService {
             throw new EntityNotFoundException("User not found with id " + userId);
         }
 
-        return userGroupRepository.findCurrentGroupsByUser(userId, MemberStatus.MEMBER).stream().map(g -> groupMapper.toDTO(g, String.valueOf(userId), messageRepository)).sorted().toList();
+        return userGroupRepository.findCurrentGroupsByUser(userId, MemberStatus.MEMBER).stream().map(g -> groupMapper.toDTO(g, String.valueOf(userId), messageRepository)).sorted(Comparator.comparing(GroupDTO::getCreatedDate).reversed()).toList();
     }
 
     public List<JoinGroupRequestDTO> getCurrentUsersRequests(Authentication authentication) {
